@@ -1,0 +1,112 @@
+版本控制工具h优点:
+协同修改
+数据备份
+版本管理
+权限控制
+历史记录
+分支管理
+
+
+集中式版本控制
+系统宕机历史记录就没了-单点故障藏（svn）
+
+分布式版本控制
+本地就有历史版本（git）
+
+
+git优势:
+大部门在本地开发完成不需要连网
+完整性保存
+尽可能添加数据而不是删除或者修改数据
+分支操作很快流畅（内部快照的管理）
+与linux命令兼容
+
+
+git 结构:
+工作区
+  |
+git add
+暂存区
+  |
+Git commit
+
+本地库
+
+
+
+git和github代码托管中心
+
+代码托管中心:维护远程库
+
+局域网:
+Gitlab
+
+外网:
+Github
+
+
+Git命令行操作:
+git init
+
+git add
+
+
+git log
+
+git log —-oneline
+
+git reflog 显示指针HEAD@{当前版本需要多少步}
+
+
+基于索引值操作后退和前进版本
+
+git reset —-hard + 索引值（git reflog 前面显示的hash值）
+
+reset 命令三个参数
+—-soft 仅仅在本地库移动HEAD指针
+—-mixed 在本地库移动HEAD指针、重置暂存区
+—-hard 在本地库移动HEAD指针、重置暂存区、重置工作区
+
+已经提交的文件 删除找回
+退回上一个提交的版本
+
+
+文件比较
+git diff
+
+
+Git 分支:
+创建新分支的好处
+同时并行开发 提高效率
+各个分支在开发过程中 某个分支失败不会对其他分支影响 删除开始即可
+git branch -v 查看分支
+git branch 创建分支
+git checkout + 分支名 切换分支
+
+合并操作:
+分支合并master 
+先切换到接受修改的分支上（被合并，添加新内容）上 git checkout + 被合并
+再执行merge命令 + 分支名字 git merge + 分支名
+
+合并时产生冲突:
+先编辑文件删除特殊符号修改
+再修改文件内容
+git add + 文件名
+git commit -m ’‘ 此时commit不能带文件名
+
+
+
+拉取pull：
+
+pull = fetch + merge
+
+git fetch + 远程库地址别名 + 远程分支名
+
+git merge + 远程库地址别名/远程分支名
+
+
+   
+
+
+
+
