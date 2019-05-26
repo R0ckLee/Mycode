@@ -31,6 +31,12 @@ git add
 Git commit
 
 本地库
+  |
+git remote add origin + 远程仓库地址
+   |
+git remote -v 检查当前远程库的别名
+   |
+git push origin master
 
 
 
@@ -105,7 +111,6 @@ git fetch + 远程库地址别名 + 远程分支名
 git merge + 远程库地址别名/远程分支名
 
 
-
 解决冲突：
 如果不是基于gtihub远程库上最新版所做的修改，不能推送，必须先拉取
 拉取后进入冲突状态 按照上面分支冲突的解决办法操作
@@ -122,6 +127,13 @@ git merge + 远程库地址别名/远程分支名
 然后Pull request —> New pull request —> create pull request
 
 
+
+
+
+
+
+
+
 假设项目上有一个分支test，使用git branch -a看不到该远程分支，直接使用命令git checkout test报错如下：
 
 error: pathspec 'origin/test' did not match any file(s) known to git.
@@ -131,3 +143,24 @@ error: pathspec 'origin/test' did not match any file(s) known to git.
 2、执行git branch -a可以看到test分支（已经更新分支信息）
 
 3、切换分支git checkout test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
+
+
+
