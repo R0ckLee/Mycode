@@ -20,6 +20,7 @@
 	
 	解决延迟的方法
 	简单的减少slave同步延时的方案就是在架构上做优化，尽量让主库的DDL快速执行。	还有就是主库是写，对数据安全性较高，比如 sync_binlog=1，	innodb_flush_log_at_trx_commit = 1 之类的设置，而slave则不需要这么高的	数据安全，完全可以讲sync_binlog设置为0或者关闭binlog，innodb_flushlog也 	可以设置为0来提高sql的执行效率。另外就是使用比主库更好的硬件设备作为slave。
+<<<<<<< HEAD
 	
 
 2.mysql查看连接进程
@@ -56,6 +57,44 @@
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
 	
+=======
+	
+
+2.mysql查看连接进程
+	show processlist;
+	show status;
+
+3.web网站访问慢排查都有哪些问题影响
+	客户端
+	（1）网络问题
+	（2）dns解析问题
+	访问其他网页没问题的话 那就是server端出现的问题
+	（1）并发多了之后 服务器的出口带宽不够 或者夸运营商导致的带宽缩减
+	（2）服务器负载过高 CPU内存消耗过高
+	（3）查询数据库读写耗时太长 代码问题
+	（4）数据库过于庞大没有进行优化 每次查询耗时长
+	解决办法
+	（1）出口带宽或者硬件的优化
+	（2）mysql语句优化
+	（3）数据库主从复制 读写分离
+	（4）使用缓存机制把数据缓存到内存非关系型数据库
+	（5）CDN
+	（6）网站架构优化 服务器集群或者数据库集群
+
+4.ftp的两种模式
+	主动/被动
+
+5.named启动过程
+	dns服务器进程 当其启动时自动装载/etc/named.conf 文件定义的dns
+
+6.dns解析过程
+	nslookup/dig
+	本地hosts - 浏览器缓存 - 系统缓存 -路由器缓存 - 运营商缓存 - 根域名服务器
+
+7.一个目录大于100k的文件copy到另一个目录
+	ll -h file awk | ‘{print $5}’
+	
+>>>>>>> 96df65b462376f6eeb5ce61973491d03bf9ae4d6
 8.两个服务器拷贝文件的几种方法
 	scp/ftp/wget
 
@@ -101,6 +140,7 @@
 	本机端口转发:iptables -t nat -A PREROUTING -p tcp - -dport 80 -j REDIRECT - -to-ports 8080
 	不同机器端口转发:
 16.linux 防火墙相关设置
+<<<<<<< HEAD
 
 17.sed awk 常用方法
 
@@ -110,6 +150,8 @@
 
 
 
+=======
+>>>>>>> 96df65b462376f6eeb5ce61973491d03bf9ae4d6
 、、、
 
 nginx和apache区别
