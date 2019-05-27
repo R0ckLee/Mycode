@@ -101,6 +101,15 @@
 	本机端口转发:iptables -t nat -A PREROUTING -p tcp - -dport 80 -j REDIRECT - -to-ports 8080
 	不同机器端口转发:
 16.linux 防火墙相关设置
+
+17.sed awk 常用方法
+
+18.gitlab的安装配置以及备份还原
+
+19.mysql、redis、php等编译安装
+
+
+
 、、、
 
 nginx和apache区别
