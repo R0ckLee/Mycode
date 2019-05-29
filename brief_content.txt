@@ -113,6 +113,71 @@
 
 
 
+20.http协议 tcp/ip协议
+	tcp是一种面向连接的、可靠的传输层协议 tcp传输有三次握手 为应用层提供服务 点对点传输
+	ip是网络互连的一种通信协议属于网络层 
+	http 是一种超文本传输的应用层协议 基于tcp/ip协议（无状态协议没有记忆能力、无连接的每次只处理一个请求）有请求行、请求头和响构成
+
+
+
+21.浏览器访问一个server的过程 一个完整的http请求过程
+	浏览器输入域名 首先对域名进行解析 
+	根据ip找到对应的服务器 发起tcp三次握手连接
+	建立tcp连接之后发起http请求
+	服务器响应http请求 返回给浏览器 浏览器解析呈献给用户
+	
+
+
+22.Docker-file一些命令 docker-file是干什么的
+	
+	配置阿里的镜像源
+	docker pull下载拉取一个镜像
+
+	docker built -f + 文件目录 -t + 新镜像名字 + ‘.’ Dokerfile 文件所在目录 也可以是绝对路径
+	
+	docker images查看生成的镜像
+
+	docker run -itd + 镜像id或者名字:加版本
+
+	docker-file是用来构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
+	写docker-file —> bulid —> run 三步骤
+
+	docker run -it -p 7777:8080 tomcat 映射容器的端口
+
+	docker history + 镜像id 查看镜像的生成过程
+	
+	格式：
+	FROM 原镜像 Base镜像（scrath）
+	MAINTAINER 作者和邮箱的一些信息
+	ADD 
+	LABEL
+
+
+
+
+	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行)
+	
+	基本知识：（1）每条保留字指令都必须为大写字母且后面要至少跟随一个参数
+		（2）指令从上到下顺序执行
+		（3）每条指令都会创建一个镜像层，并对镜像进行提交
+
+	执行的大致流程：（1） docker从基础镜像运行一个容器
+		     （2） 执行每一条指令并对容器进行修改
+		     （3） 执行类似docker commit 的命令提交一个新的镜像层     ——>  最终形成一个镜像
+		     （4） docker 在基于刚才提交的镜像运行一个新容器
+		     （5） 执行dockerfile中的每一条指令到所有都完成
+
+
+
+
+	FROM ：基础经镜像的来源
+	
+
+23.shell python
+
+
+
+
 、、、
 
 nginx和apache区别
