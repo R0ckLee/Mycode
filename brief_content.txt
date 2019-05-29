@@ -128,52 +128,9 @@
 	
 
 
-22.Docker-file一些命令 docker-file是干什么的
-	
-	配置阿里的镜像源
-	docker pull下载拉取一个镜像
-
-	docker built -f + 文件目录 -t + 新镜像名字 + ‘.’ Dokerfile 文件所在目录 也可以是绝对路径
-	
-	docker images查看生成的镜像
-
-	docker run -itd + 镜像id或者名字:加版本
-
-	docker-file是用来构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
-	写docker-file —> bulid —> run 三步骤
-
-	docker run -it -p 7777:8080 tomcat 映射容器的端口
-
-	docker history + 镜像id 查看镜像的生成过程
-	
-	格式：
-	FROM 原镜像 Base镜像（scrath）
-	MAINTAINER 作者和邮箱的一些信息
-	ADD 
-	LABEL
-
-
-
-
-	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行)
-	
-	基本知识：（1）每条保留字指令都必须为大写字母且后面要至少跟随一个参数
-		（2）指令从上到下顺序执行
-		（3）每条指令都会创建一个镜像层，并对镜像进行提交
-
-	执行的大致流程：（1） docker从基础镜像运行一个容器
-		     （2） 执行每一条指令并对容器进行修改
-		     （3） 执行类似docker commit 的命令提交一个新的镜像层     ——>  最终形成一个镜像
-		     （4） docker 在基于刚才提交的镜像运行一个新容器
-		     （5） 执行dockerfile中的每一条指令到所有都完成
-
-
-
-
-	FROM ：基础经镜像的来源
 	
 
-23.shell python
+22.shell python
 
 
 
@@ -223,7 +180,7 @@ location /admin {
 
 docker
 zabbix
-
+jumpserver
 
 
 
