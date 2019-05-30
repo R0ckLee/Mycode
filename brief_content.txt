@@ -58,11 +58,14 @@
 
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
+	find . -name ‘*.file’ -size +100k -exce cp -r {} \;
 	
 8.两个服务器拷贝文件的几种方法
 	scp/ftp/wget
 
 9.nginx rewrite各种参数理解以及相关内容
+	nginx 可以挂在lua脚本
+
 	last: url重写后，马上发起一个新请求 再次进入server 重新匹配location 超过十次就报500 地址栏不变
 	break: url重写后，直接使用当前资源 不再执行location里剩下的语句 完成本次请求 地址栏不变
 	redirect: 返回临时的重定向 地址栏显示重定向后的url 302 如果有爬虫不会更新url
@@ -82,6 +85,45 @@
        ****
 	proxy_pass http://name;
       }
+
+	nginx和apache区别
+
+	nginx更轻量级占用资源内存少 异步非阻塞的 抗并发高 可以作为反向代理服务器 热升级
+
+	apache同步多进程 nginx异步多个连接对应一个进程 apache 更稳定
+
+
+
+	nginx功能:
+	静态的web服务器
+	反向代理
+	负载均衡
+	虚拟主机	
+	请求转发
+
+
+	nginx 中如果location 是 alias 必须 location 中的根目录 要和 alias 末级的文件夹一致
+
+
+	location /admin {
+          	alias   /home/data/admin;
+          	auth_basic "User Authentication";
+          	auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
+  
+
+	nginx  中如果 location 是 root 必须 location 中的根目录 要包含在 root 目录中最后一级
+
+	location /admin {
+         	root    /home/data;
+          	auth_basic "User Authentication";
+          	auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
+  
+          	}
+
+
+
+
+
 
 10.ansible发送指令慢解决办法
 	关掉 配置文件/etc/ansible/ansible.cfg 中验证秘钥的验证 host_key_checking = False
@@ -105,11 +147,23 @@
 	不同机器端口转发:
 16.linux 防火墙相关设置
 
-17.sed awk 常用方法
+17.sed awk find grep常用方法
+	find . -name ‘*.txt’ -type d -maxdepth 1 -mtime -1 -size +100k -exce cp -r {} /tmp/  找到当前大于100k的一级目录 最新一天修改过的 并copy到tmp目录下
+	find . -type f -exec chmod -R 644 {} \;  当前目录下 所有文件授权644
+	
+	找到log日志文件删除30天以前的 ：find . -type f -name “*.log” -mtime +30 -exec rm -rf {} \;
+
+	grep “([0-9]{1,3}\.){3}[0-9]{1,3}$” file 匹配ip地址
+
+	awk -F ‘:’ ’{print $1，$NF} ‘ file | head -5 打印文件的第一列前五个	
+	
+	sed ‘$d’ file 删除 file文件的最后一行  
+	sed -i ’s/原内容/替换内容/1’ file 替换字符串 s 参数是替换 1是替换第一个行以此类推 替换所有行用g
 
 18.gitlab的安装配置以及备份还原
 
 19.mysql、redis、php等编译安装
+	musql初始设置 /etc/my.cnf 开启二进制日志 log-bin
 
 
 
@@ -135,52 +189,74 @@
 
 
 
-、、、
 
-nginx和apache区别
+23.zabbix相关只是点zabbix_proxy
+	
+	zbbbix安装步骤:
+		https://www.zabbix.com/cn/
+		
 
-nginx更轻量级占用资源内存少 异步非阻塞的 抗并发高 可以作为反向代理服务器 热升级
+	zabbix客户端安装 zabbix-agent zabbix-sender
+	编辑/etc/zabbix/zabbix_agentd.conf的配置文件
+	修改Server服务端的 IP地址
+	修改主动模式下ServerActive服务端的IP地址
+	修改Hostname 这个对应的是zabbix-server端web界面创建host时的主机名保持一致
+	然后启动zabbix-agent.service
 
-apache同步多进程 nginx异步多个连接对应一个进程 apache 更稳定
+	手动添加:
+		server端添加host configuration - Hosts - Create host
 
+		添加完主机 - items代表要监控的项目 items - create item
 
+		自定义监控内容 自定义key 编辑zabbix_agentd.conf下面一个配置文件内容监控内存使用：UserParameter=memory.used,/usr/bin/free -mh |/usr/bin/awk ‘/^Mem/{print $3}’ 
+		重启agent服务
 
+		server端命令行获取agent数据 zabbix_get 命令 先yum -y install zabbix_get 命令 再用zabbix_get -s agentip地址 -p agent端口号 -k “自定义文件里面的名称（memory.user）”
+		检查没问题之后 server端web页面添加自定义的item即可（数据刷新有点延迟）
+		
+	添加监控的模板
+		点开主机名 - 模板 - 添加 - 更新  —->自动添加模板的监控项
 
+	自动发现策略:
+		
+		server端 configuration - create discover
 
+		配置自动发现规则 名称 - IP地址范围 - 更新时间
 
-nginx功能:
-静态的web服务器
-反向代理
-负载均衡
-虚拟主机
-请求转发
-
-
-nginx 中如果location 是 alias 必须 location 中的根目录 要和 alias 末级的文件夹一致
-
-
-location /admin {
-          alias   /home/data/admin;
-          auth_basic "User Authentication";
-          auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
-  
-
-nginx  中如果 location 是 root 必须 location 中的根目录 要包含在 root 目录中最后一级
-
-location /admin {
-         root    /home/data;
-          auth_basic "User Authentication";
-          auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
-  
-          }
+		自动发现并添加主机清单 —->用到模板
 
 
 
 
 
-docker
-zabbix
+
+
+
+
+
+
+
+高可用性
+
 jumpserver
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
