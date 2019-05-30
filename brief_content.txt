@@ -218,7 +218,8 @@
 		点开主机名 - 模板 - 添加 - 更新  —->自动添加模板的监控项
 
 	自动发现策略:
-		
+
+
 		server端 configuration - create discover
 
 		配置自动发现规则 名称 - IP地址范围 - 更新时间
@@ -226,10 +227,33 @@
 		自动发现并添加主机清单 —->用到模板
 
 
+	zabbix-proxy(分布式)
+
+		和server端不是一个机器
+		下载安装zabbix proxy
+		yum install -y zabbix-proxy zabbix-proxy-mysql zabbix-agent
+		创建zabbix_proxy数据库
+		解压zabbix软件包 在解压完的目录里有个database导入两个sql文件
+		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/schema.sql
+		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/images.sql
+				
+		安装完zabbix_proxy 会在/usr/local/zabbix/etc/下产生一个zabbix_proxy.conf文件
+		配置server端ip hostname 本机主机ip 以及数据库名的账号密码、发送提交数据给服务端的时间等设置
+
+		设置好之后再服务端的web界面添加zabbix_proxy - create proxy - 添加代理服务器ip - 主动模式 - 添加
+		添加好代理服务器之后 选择添加主机 如上面 手动添加过程 注意添加时选择是有代理服务器检测而不是server端监控
+		添加好的主机也要选择监控项添加一个模板 如自动发现的模板
+		客户端的/us/local/zabbix/etc/zabbix_agentd.conf 里面把指向server端的ip改成指向proxy端的ip地址才能获取到数据
+		
+		
 
 
 
+24.gitlab-ci
+	持续集成: 持续集成是一天多次将代码合并到主干 通过自动构建的方式验证每次提交 尽早发现问题
+	持续集成的价值: 保持随时部署 简化发布流程 尽早发现问题
 
+		
 
 
 
