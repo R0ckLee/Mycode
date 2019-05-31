@@ -59,6 +59,7 @@
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
 	find . -name ‘*.file’ -size +100k -exce cp -r {} \;
+	find . -size +200M -exec ls -lh {} \; | awk  '{print $5,$9}'
 	
 8.两个服务器拷贝文件的几种方法
 	scp/ftp/wget
@@ -159,6 +160,10 @@
 	
 	sed ‘$d’ file 删除 file文件的最后一行  
 	sed -i ’s/原内容/替换内容/1’ file 替换字符串 s 参数是替换 1是替换第一个行以此类推 替换所有行用g
+	
+shell
+	
+		
 
 18.gitlab的安装配置以及备份还原
 
