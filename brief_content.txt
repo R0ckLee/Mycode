@@ -22,12 +22,55 @@
 	简单的减少slave同步延时的方案就是在架构上做优化，尽量让主库的DDL快速执行。	还有就是主库是写，对数据安全性较高，比如 sync_binlog=1，	innodb_flush_log_at_trx_commit = 1 之类的设置，而slave则不需要这么高的	数据安全，完全可以讲sync_binlog设置为0或者关闭binlog，innodb_flushlog也 	可以设置为0来提高sql的执行效率。另外就是使用比主库更好的硬件设备作为slave。
 	
 
+
+
 	
 	
 
-2.mysql查看连接进程
-	show processlist;
+2.mysql常用函数以及表达式：
+	show processlist;  显示连接进程
 	show status;
+	
+	常用函数
+	length
+	concat
+	substr
+	instr
+	trim
+	upper
+	lower
+	lpad
+	rpad
+	distinct 去重
+	replace
+	
+	round
+	ceil
+	floor
+	truncate
+	mod
+
+	now
+	curdate
+	curtime	
+	str_to_date
+	date_format
+	datediff 日期差
+	
+	version
+	database
+	user
+
+	if
+	case
+	
+	sum
+	avg
+	count
+	max
+	min
+
+	group by 分组查询	
 
 3.web网站访问慢排查都有哪些问题影响
 	客户端
@@ -54,7 +97,7 @@
 
 6.dns解析过程
 	nslookup/dig
-	本地hosts - 浏览器缓存 - 系统缓存 -路由器缓存 - 运营商缓存 - 根域名服务器
+	本地hosts - 浏览器缓存 - 本地域名服务器缓存 - 运营商缓存 - 根域名服务器
 
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
