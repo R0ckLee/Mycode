@@ -21,31 +21,59 @@ Docker:
 Docker-file一些命令 docker-file是干什么的
 	
 	安装时先配置阿里的镜像源
-	docker pull下载拉取一个镜像
-
-	docker built -f + 文件目录 -t + 新镜像名字 + ‘.’ Dokerfile 文件所在目录 也可以是绝对路径
-	
-	docker images查看生成的镜像
-
-	docker run -itd + 镜像id或者名字:加版本
-
+		
 	docker-file是用来构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
 	写docker-file —> bulid —> run 三步骤
+	编写dockerfile
+	然后docker build -f + 文件目录 -t + 新镜像名字 + ‘.’  ‘.’是Dokerfile 文件所在目录 也可以是绝对路径
+	再docker run -itd + 镜像id或者名字:加版本 启动一个容器
+	
+	docker images查看生成的镜像
+		
+	docker ps 当前正在运行的容器 docker ps -q 查询当前运行容器的id docker ps -qa 查看所有的容器
 
 	docker run -it -p 7777:8080 tomcat 映射容器的端口
 
 	docker history + 镜像id 查看镜像的生成过程
 	
+	docker -v 添加容器卷
+	
+	docker exec + 镜像id + 执行的命令  在容器外面对某个容器执行命令并返回
+	进入一个容器 docker exec+ 镜像id 或 docker attach+镜像id
+	ctrl+p+q 退出容器并报出运行 ctrl+c退出并关闭容器
+	
+	docker restart + 镜像id 重启容器
+
+	docker commit 将容器提交一个新的镜像
+	将提交的镜像推送至阿里云 先注册开发者账号 并新建镜像仓库
+	docker login —-username= 仓库地址
+	docker tag + 镜像id + 仓库地址/:[镜像版本号]
+	docker push + 仓库地址/:[镜像版本号]
+
 	格式：
-	FROM 原镜像 Base镜像（scrath）
+	保留字指令：
+	FROM 基础镜像的来源 原镜像 Base镜像（scrath 一切镜像的祖先类）
 	MAINTAINER 作者和邮箱的一些信息
-	ADD 
-	LABEL
+	RUN 容器构建时需要运行的命令
+	EXPOSE 当前容器对外暴露的端口号
+	WORKDIR 登陆容器的时候落脚点目录
+	ENV 用来在构建容器过程中设置的环境变量
+	ADD 将宿主机的文件拷贝文件并解压到镜像的指定目录
+	COPY 类似ADD 拷贝文件到镜像中  COPY src dest 或 COPY [‘src’,’dest’]
+	VOLUME 容器卷 用于保存数据和持久化工作
+	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行) 指定一个容器启动时要运行的命令 Dockerfile 中可以指定多个CMD指令 但是只有最后一个生效 CMD会被docke run之后的参数替换
+	ENTRYPOINT 指定一个容器启动时要运行的命令 ENTRYPOINT 不会被docker run之后参数替换而是追加
+	ONBUILD 当构建一个继承的Dockerfile时运行命令，父镜像在被子继承后父镜像的onbuild被触发
+	LABEL 功能是为镜像指定标签  说明:LABEL会继承基础镜像种的LABEL，如遇到key相同，则值覆盖
 
 
+	
+	docker search + 镜像名 查找一个镜像
+	docker pull + 镜像名  下载拉取一个镜像默认不加:和版本号如（mysql:5.6）视为最新版
+	
 
+	
 
-	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行)
 	
 	基本知识：（1）每条保留字指令都必须为大写字母且后面要至少跟随一个参数
 		（2）指令从上到下顺序执行
@@ -60,4 +88,3 @@ Docker-file一些命令 docker-file是干什么的
 
 
 
-	FROM ：基础经镜像的来源
