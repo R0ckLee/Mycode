@@ -22,12 +22,55 @@
 	简单的减少slave同步延时的方案就是在架构上做优化，尽量让主库的DDL快速执行。	还有就是主库是写，对数据安全性较高，比如 sync_binlog=1，	innodb_flush_log_at_trx_commit = 1 之类的设置，而slave则不需要这么高的	数据安全，完全可以讲sync_binlog设置为0或者关闭binlog，innodb_flushlog也 	可以设置为0来提高sql的执行效率。另外就是使用比主库更好的硬件设备作为slave。
 	
 
+
+
 	
 	
 
-2.mysql查看连接进程
-	show processlist;
+2.mysql常用函数以及表达式：
+	show processlist;  显示连接进程
 	show status;
+	
+	常用函数
+	length
+	concat
+	substr
+	instr
+	trim
+	upper
+	lower
+	lpad
+	rpad
+	distinct 去重
+	replace
+	
+	round
+	ceil
+	floor
+	truncate
+	mod
+
+	now
+	curdate
+	curtime	
+	str_to_date
+	date_format
+	datediff 日期差
+	
+	version
+	database
+	user
+
+	if
+	case
+	
+	sum
+	avg
+	count
+	max
+	min
+
+	group by 分组查询	
 
 2.1 MongoDB(非关系型数据库中的文档数据库)
 	数据库（多个集合） —-> 集合（多个文档） —> 文档
@@ -70,11 +113,12 @@
 
 6.dns解析过程
 	nslookup/dig
-	本地hosts - 浏览器缓存 - 系统缓存 -路由器缓存 - 运营商缓存 - 根域名服务器
+	本地hosts - 浏览器缓存 - 本地域名服务器缓存 - 运营商缓存 - 根域名服务器
 
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
 	find . -name ‘*.file’ -size +100k -exce cp -r {} \;
+	find . -size +200M -exec ls -lh {} \; | awk  '{print $5,$9}'
 	
 8.两个服务器拷贝文件的几种方法
 	scp/ftp/wget
@@ -175,6 +219,10 @@
 	
 	sed ‘$d’ file 删除 file文件的最后一行  
 	sed -i ’s/原内容/替换内容/1’ file 替换字符串 s 参数是替换 1是替换第一个行以此类推 替换所有行用g
+	
+shell
+	
+		
 
 18.gitlab的安装配置以及备份还原
 
