@@ -21,10 +21,13 @@
 	解决延迟的方法
 	简单的减少slave同步延时的方案就是在架构上做优化，尽量让主库的DDL快速执行。	还有就是主库是写，对数据安全性较高，比如 sync_binlog=1，	innodb_flush_log_at_trx_commit = 1 之类的设置，而slave则不需要这么高的	数据安全，完全可以讲sync_binlog设置为0或者关闭binlog，innodb_flushlog也 	可以设置为0来提高sql的执行效率。另外就是使用比主库更好的硬件设备作为slave。
 	
-
-
-
 	
+	mysql备份	
+	   备份sql文件 mysqldump -uroot -p123456 -B 数据库名 表名> test.sql  还原 mysql -uroot -p123456 数据库名 < test.sql
+           test文本备份 select * from student into outfile '/var/lib/mysql-files/tt.txt';  还原 load data infile '/var/lib/mysql-files/tt.txt' into table student;
+
+
+	mysql读写分离分库分表
 	
 
 2.mysql常用函数以及表达式：
@@ -204,7 +207,9 @@
 
 15.某台机器上80端口转发到8089端口上的方法
 	本机端口转发:iptables -t nat -A PREROUTING -p tcp - -dport 80 -j REDIRECT - -to-ports 8080
-	不同机器端口转发:
+	不同机器端口转发:iptables -t nat -A PREROUTING(路由前)  -p tcp -d 172.16.4.247 --dport 728 -j DNAT --to-destination 172.16.4.97:80 (DNAT用于端口转发)
+	              iptables -t nat -A POSTROUTING(路由后) -p tcp -s 172.16.4.97/32 -j SNAT --to-source 172.16.4.247 （SNAT用于内网机器的地址转换上网用）
+
 16.linux 防火墙相关设置
 
 17.sed awk find grep常用方法
@@ -220,6 +225,11 @@
 	sed ‘$d’ file 删除 file文件的最后一行  
 	sed -i ’s/原内容/替换内容/1’ file 替换字符串 s 参数是替换 1是替换第一个行以此类推 替换所有行用g
 	
+
+	sort uniq -c 去重并统计次数 sort -nr 倒序并按照大到小排序
+
+	tcpdump嗅探80端口看谁访问最高
+		tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F"." '{print $1"."$2"."$3"."$4}' | sort | uniq -c | sort -nr |head -5&nbsp;
 shell
 	
 		
@@ -249,7 +259,17 @@ shell
 	
 
 22.shell python
+	新建20个用户的sh脚本
+	seq -f"%02g" 1 20 —> 产生1-20中间的整数不足用0补位
+	for i in `seq -f"%02g" 1 20`;do
+	useradd user$i
+	echo "user$i-`echo $RANDOM|md5sum|cut -c 1-5`"|passwd –stdinuser$i >/dev/null 2>&1
+	done
 
+	软连接相当于快捷方式 硬链接相当于复制了一份占空间
+	df -h 查看文件系统空间使用情况 df -i 查看inode节点数占用情况
+	正则表达式
+ 	   匹配电话号码 result = re.match(r”1[3,5,6,7,8]\d{9}”,tel)
 
 
 
