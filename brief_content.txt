@@ -6,7 +6,7 @@
 1. mysql主从备份延迟以及实际相关问题
 	原理	
 	异步
-	主库对写的的操作写进binlog
+	主库把写的的操作写进binlog
 	并产生一个线程 用户给从库I/O线程读取binlog日志
 	从库请求主库的binlog日志 并将日志写到自己的relayl og日志中
 	从库线程会读取relay log日志的内容解析成具体sql语句并执行
@@ -25,14 +25,77 @@
 	mysql备份	
 	   备份sql文件 mysqldump -uroot -p123456 -B 数据库名 表名> test.sql  还原 mysql -uroot -p123456 数据库名 < test.sql
            test文本备份 select * from student into outfile '/var/lib/mysql-files/tt.txt';  还原 load data infile '/var/lib/mysql-files/tt.txt' into table student;
+	mysql设置客户端访问权限
+	    grant all privileges on *.* to ‘root’@‘%’ identified by ‘123456’ with grant option;
+	    flush privileges;
 
+	mysql修改登录密码编辑/etc/my.cnf
+		[mysqld]
+		 skip-grant-tables —->跳过权限验证直接登录
+		修改root密码 先刷新权限相关的表 flush privileges;
+		set password for root@localhost = password(‘123456’);或者
+		use mysql; update user set password=PASSWORD(‘123456’)WHERE user=’root’; 
+		再刷新 flush privileges;
+		最后在注释掉
+		[mysqld]
+		#skip-grant-tables
+		重启mysql服务
 
-	mysql读写分离分库分表
+	mysql主从复制读写分离分库分表
+		主库从库有相同的数据库和表
+		1.修改主服务器的同步日志my.cnf配置文件
+		     添加
+		     log-bin=master-a-bin #日志文件名称
+		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
+		     server-id=1 #要求各个服务器的这个id不一样
+		     binlog-do-db=需要同步的数据库名称
+		2.设置从服务器登陆主服务器的账号
+		     在主服务器上添加账号
+                     grant replication slave on *.* to ‘root’@‘从服务器ip’ identified by ‘123456’;	
+		     flush privileges;
+		     
+		     注:另外在《Hight Performance MySql》一书中对用户权限的设置有所不同，作者建议在主机和从机上都配置root账户，并同时赋予REPLICATION SLAVE和REPLICATION CLIENT权限，命令如下：
+mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' IDENTIFIED BY 'repl';
+作者解释了这样做的好处：一方面使用同一账户对Replication进行监视管理会很方便，不必区分slave,master，另一方面，repl账户在slave和master上的配制是一样的，这样如果我们切换slave和master，账户不需要做任何改动。
+
+		3.从服务器的配置文件修改my.cnf
+		     添加
+		     log-bin=master-a-bin #日志文件名称
+		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
+		     server-id=2 #要求各个服务器的这个id不一样
+		     log-slave-updates=true  #中继日志这些变化是否计入自己的binlog日志中当你的从服务器需要作为另一台服务器的主服务器的时候需要打开
+		4.重启主服务器mysql服务 主服务器查看日志状态 show master status;show master logs; 然后在mysqldump备份主服务器的数据库
+		5.从服务器mysql服务重启 
+		    设置主从服务的日志、偏移量、登陆的信息
+		    在从服务器上执行	
+		    change master to
+		    master_host=‘主服务器ip’,master_user=‘root’,master_password=‘123456’,master_port=‘3306’,master_log_file=‘在主服务器上show master status 第一列File显示的日志文件名’,master_log_pos=‘主服务器上 show master status 显示的第二行Position 上的数字’;		
+
+		    start slave #开启从服务器
+		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码端口等是否都一致
 	
+
+	mysql读写分离
+	    MYCAT
+	    主服务器操作
+	      下载并安装安装mycat 依赖jdk的环境
+               配置server.xml配置文件 配置数据库信息
+	       配置schema.xml 配置datanode/datehost、writehost/readhost
+	    启动mycat
+	       ./mycat start
+                ps -ef | grep mycat 查看端口
+		登陆mycat数据库的管理端口 mysql -uroot -p123456 -Pmycat端口
+	    自己写程序
+	    
+	    mysql-proxy、Amoeba	   
+
+
+
 
 2.mysql常用函数以及表达式：
 	show processlist;  显示连接进程
 	show status;
+	show variables like '%char%';  查看字符集
 	
 	常用函数
 	length
@@ -213,6 +276,7 @@
 16.linux 防火墙相关设置
 
 17.sed awk find grep常用方法
+	egrep：使用扩展正则表达式来构建模式，相当于grep –E
 	find . -name ‘*.txt’ -type d -maxdepth 1 -mtime -1 -size +100k -exce cp -r {} /tmp/  找到当前大于100k的一级目录 最新一天修改过的 并copy到tmp目录下
 	find . -type f -exec chmod -R 644 {} \;  当前目录下 所有文件授权644
 	
@@ -259,6 +323,8 @@ shell
 	
 
 22.shell python
+	rpm -qa | grep 查询你安装过的软件包
+	rpm -ivh   安装rpm包 --force --nodeps是表示不检查依赖强制安装
 	新建20个用户的sh脚本
 	seq -f"%02g" 1 20 —> 产生1-20中间的整数不足用0补位
 	for i in `seq -f"%02g" 1 20`;do
