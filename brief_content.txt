@@ -72,8 +72,8 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 		    master_host=‘主服务器ip’,master_user=‘root’,master_password=‘123456’,master_port=‘3306’,master_log_file=‘在主服务器上show master status 第一列File显示的日志文件名’,master_log_pos=‘主服务器上 show master status 显示的第二行Position 上的数字’;		
 
 		    start slave #开启从服务器
-		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码端口等是否都一致
-	
+		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码
+端口等是否都一致	
 
 	mysql读写分离
 	    MYCAT
@@ -404,6 +404,13 @@ shell
 	持续集成的价值: 保持随时部署 简化发布流程 尽早发现问题
 
 		
+25.CMDB
+    配置管理数据库
+
+
+
+
+26.rsync
 
 
 
