@@ -413,7 +413,7 @@ shell
 
 26.rsync
 
-25.lvs(linux虚拟服务器 相当于调度器) 作者:章文嵩
+27.lvs(linux虚拟服务器 相当于调度器) 作者:章文嵩
 	
 	集群:多台主机联合起来对外提供一个服务单一系统
 	LB:负载均衡
@@ -423,7 +423,7 @@ shell
 	keepalived 解决lvs单点故障问题
     分布式存储:云盘 （把一个大文件拆分若干小块 每个机器上存储一部分数据 不同机器上会有相同块数据存储）
 
-26.ansible（性能200-300台机器）
+28.ansible（性能200-300台机器）
 	ansible-doc + 模块名字 查看说明
 	ansible all -m setup -a ‘filter=“ansible_fqdn”’(setup 系统自带变量) -m 指定模块 -a 执行的命令
 	playbook（.yml文件）
