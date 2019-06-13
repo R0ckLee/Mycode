@@ -188,7 +188,7 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	find . -size +200M -exec ls -lh {} \; | awk  '{print $5,$9}'
 	
 8.两个服务器拷贝文件的几种方法
-	scp/ftp/wget
+	scp/ftp/wget/rsync
 
 9.nginx rewrite各种参数理解以及相关内容
 	nginx 可以挂在lua脚本
