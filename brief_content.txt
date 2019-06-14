@@ -73,8 +73,8 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 		    master_host=‘主服务器ip’,master_user=‘root’,master_password=‘123456’,master_port=‘3306’,master_log_file=‘在主服务器上show master status 第一列File显示的日志文件名’,master_log_pos=‘主服务器上 show master status 显示的第二行Position 上的数字’;		
 
 		    start slave #开启从服务器
-		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码端口等是否都一致
-	
+		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码
+端口等是否都一致	
 
 	mysql读写分离
 	    MYCAT
@@ -405,8 +405,15 @@ shell
 	持续集成的价值: 保持随时部署 简化发布流程 尽早发现问题
 
 		
+25.CMDB
+    配置管理数据库
 
-25.lvs(linux虚拟服务器 相当于调度器) 作者:章文嵩
+
+
+
+26.rsync
+
+27.lvs(linux虚拟服务器 相当于调度器) 作者:章文嵩
 	
 	集群:多台主机联合起来对外提供一个服务单一系统
 	LB:负载均衡
@@ -416,7 +423,7 @@ shell
 	keepalived 解决lvs单点故障问题
     分布式存储:云盘 （把一个大文件拆分若干小块 每个机器上存储一部分数据 不同机器上会有相同块数据存储）
 
-26.ansible（性能200-300台机器）
+28.ansible（性能200-300台机器）
 	ansible-doc + 模块名字 查看说明
 	ansible all -m setup -a ‘filter=“ansible_fqdn”’(setup 系统自带变量) -m 指定模块 -a 执行的命令
 	playbook（.yml文件）
