@@ -4,6 +4,7 @@
 	
 ###'''
 ####此接口的作用是新入职人员访问这个接口会把人员的邮箱名存在文本中
+
 	@app.route('/###getstatus',methods=['post','get'])
 	def get_oastatus():
 	    mail = request.args.get('mail')
@@ -17,8 +18,6 @@
 	                return json.dumps({'code':200})
 	    else:
 	        return json.dumps({'code':204,'msg':'用户名有误'},ensure_ascii=False)
-
-
 	return data
 	if __name__ == "__main__":
 	    app.debug = 1
