@@ -562,6 +562,45 @@ shell
 	ICMP
 
 
+30.python 理解__str__ and  __repr__
+	
+	两者都是用来实现类的订制
+
+	__repr__ 在使用内建函数 repr()进自动调用
+
+	__str__ 在使用print()进自动调用
+	
+	好的习惯把这两个定制方法进行重写,从而在输出显示时更方便
+	
+	例如:
+		class Test(object):
+    			def __init__(self,value):
+        		self.value = value
+		t = Test(’name’)
+		print(t)
+		得到的结果是 :<__main__.Test object at 0x108eb7e10> 显示内存地址
+		
+		class Test(object):
+    			def __init__(self,value):
+        		self.value = value
+        
+    			def __str__(self):
+
+        		    return 'test - <%s>' % self.value
+
+    			def __repr__(self):
+			
+        		    return 'test2 - <%s>' % self.value
+		
+		得到的结果: test - <name>
+		
+		自定义类的显示结果	
+
+
+
+
+
+
 高可用性
 
 jumpserver
