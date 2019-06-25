@@ -606,6 +606,44 @@ shell
 
 			Python中使用lambda的话，写成这样
 			g = lambda x : x**2
+		
+		例:
+		def testFun():
+    		    temp = [lambda x:i*x for i in range(4)]              def testFun():
+									     temp = []
+    		    return temp                                   ————>      for i in range(4)
+								                 temp.append(lamdba x:i*x)
+	   	for i in testFun():                            		     return temp
+									直接调用函数:print(testFun()) 返回的是一个lambda函数
+									<function testFun.<locals>.<listcomp>.<lambda> at 0x10a011950>
+									将函数赋值 r = testFun() 再重新对变量赋值 才是lambda返回的值 print(r(2))
+		    print(i(2))    
+		
+		输出结果:
+		>>>6 6 6 6
+
+		说明:使用lambda的时候，如果不实时指定参数就会用到最后一个 所以每次循环只输出for循环中的最后一位即每次输出2*3
+
+		函数中嵌套lamdba的转换:
+		def FunA(x):
+		    def FunB(y):
+		        for i in range(4):
+			    pass
+			return i*y
+		    return FunB
+
+
+		上述例子如果要输出0，2，4，6
+		改成
+		def testFun():
+		    temp=[lambda x,i=i:i*x for i in range(4)]  ——->每次循环调用lambda对i重新赋值 否则只会调用最后一个
+		    return temp
+
+		for i in testFun():
+		    print(i(2))
+		输出结果:
+		>>>0 2 4 6
+
 
 		配合map()函数使用
 		遍历序列，对序列中每个元素进行操作，最终获取新的序列。
