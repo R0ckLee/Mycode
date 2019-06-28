@@ -614,7 +614,7 @@ shell
     		    return temp                                   ————>      for i in range(4)
 								                 temp.append(lamdba x:i*x)
 	   	for i in testFun():                            		     return temp
-									直接调用函数:print(testFun()) 返回的是一个lambda函数
+									直接调用函数:print(testFun()) 返回的是一个lambda函数对象
 									<function testFun.<locals>.<listcomp>.<lambda> at 0x10a011950>
 									将函数赋值 r = testFun() 再重新对变量赋值 才是lambda返回的值 print(r(2))
 		    print(i(2))    
@@ -709,6 +709,17 @@ shell
 		到这里你可能就明白yield和return的关系和区别了，带yield的函数是一个生成器，而不是一个函数了，这个生成器有一个函数就是next函数，next就相当于“下一步”生成哪个数，这一次的next开始的地方是接着上一次的next停止的地方执行的，所以调用next的时候，生成器并不会从foo函数的开始执行，只是接着上一步停止的地方开始，然后遇到yield后，return出要生成的数，此步就结束。
 
 		
+
+	python 多线程 多进程 （多线程共享全局变量 进程之间相互独立）
+	    现有进程 才有线程  线程依赖于进程
+	    并行:真的多任务
+	    并发:加的多任务一起
+	    多线程:资源少，操作系统调度的单位 真正执行的是线程            ——> 进程就是工厂中的一条流水线 线程就是流水线上的工人
+	    多进程:消耗资源多 资源浪费 资源分配的单位
+ 
+	    线程池 - 重复利用  线程中异常不打印出来
+	    线程池中创建队列队列 用的是 multiprocessing.Manager()下面的Queue 而不是 queue中的Queue 
+	    queue = multiprocessing.Manager().Queue() 
 
 
 高可用性
