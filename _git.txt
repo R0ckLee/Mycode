@@ -52,12 +52,25 @@ Github
 
 
 Git命令行操作:
-git init
+新建仓库
+git init #初始化
 
-git add
+git  status # 获取状态
+
+git add 
+ 
+git rm - -cached # 在commit之前撤销git add操作
+git reset head #好像比上面git rm --cached更方便
+
+git commit -m ‘描述信息’ #提交
+
+git remote add origin +git远程仓库地址 #添加源
+
+git push origin master # 推送远程仓库
 
 
-git log
+
+git log # 查看提交记录
 
 git log —-oneline
 
