@@ -6,7 +6,7 @@
 1. mysql主从备份延迟以及实际相关问题
 	原理	
 	异步
-	主库对写的的操作写进binlog
+	主库把写的的操作写进binlog
 	并产生一个线程 用户给从库I/O线程读取binlog日志
 	从库请求主库的binlog日志 并将日志写到自己的relayl og日志中
 	从库线程会读取relay log日志的内容解析成具体sql语句并执行
@@ -21,13 +21,835 @@
 	解决延迟的方法
 	简单的减少slave同步延时的方案就是在架构上做优化，尽量让主库的DDL快速执行。	还有就是主库是写，对数据安全性较高，比如 sync_binlog=1，	innodb_flush_log_at_trx_commit = 1 之类的设置，而slave则不需要这么高的	数据安全，完全可以讲sync_binlog设置为0或者关闭binlog，innodb_flushlog也 	可以设置为0来提高sql的执行效率。另外就是使用比主库更好的硬件设备作为slave。
 	
+	mysql的存储类型
+
+	mysql数据库设计三范式：
+	    1.什么是设计范式？
+	        设计表的依据，按照这个三范式设计的表不会出现数据冗余
+	    2.三范式都是哪些？
+	        第一范式:任何一张表都应该有主键，并且每一个字段原子性不可再分。
+		 
+		 第二范式:建立在第一范式的基础上，所有非主键字段完全依赖，不能产生部分依赖。(产生部分依赖 会产生数据冗余 从而造成空间浪费)
+		     口诀:多对多关系  三张表  关系表中有两个外键（第三张表为关系表 通过外键关联另外两个表 纯关系表）
+
+		 第三范式:建立在第二范式的基础上，所有非主键字段直接依赖主键，不能产生传递依赖。
+		     口诀:一对多关系 两张表  多的那个表加外键
+               
+
+                一对一怎么设计？ 
+		      两种方案:
+		      	 1.主键共享
+		          例:一张登录表(只有用户名和密码) 一张详细信息表（详细信息表和登陆表主键共享 ）
+		        2.外键唯一
+		      	   例:一张登录表(只有用户名和密码) 一张详细信息表（详细信息表的外键加一个unique唯一约束）
+					      
+	    
+	    提醒: 实际开发中 以满足客户需求为主 有的时候会拿冗余换执行速度
+	
+
+
+	数据库sql语句分类
+	    DQL(数据库查询语言Query):凡是select语句都是DQL
+	    DML(数据库操作语言 Mainpulation):insert、delete、update 对表中的数据进行增删改的操作是DML
+	    DDL(数据定义语言 Definition):create、drop、alter 对表结构的增删改操作是DDL
+	    TCL(事务控制语言): commit提交事务，rollback回滚事务
+	    DCL(数据控制语言): Control):grant授权，revoke撤销权限等
+
+
+	1、mysql 条件查询:
+
+	    sql查询语句的执行顺序:
+	        先执行 from 后面的 再执行 where后面的 再执行 select 最后执行order by
+		 select
+		     字段       5
+		 from
+		     表名       1
+		 where
+		     条件       2
+		 group by
+		     字段	 3
+		 having
+		     ….        4
+		 order by
+		     字段       6
+		 limit
+		     ….        7
+	   
+
+	    模糊查询 like 
+		     %..%: 查询任意多个字符
+		     _: 单个下划线 查询任意单个字符
+	    
+
+	    排序 order by
+		 sleect 字段 from 表名 order by 字段;
+	        select name, sal from temp order by sal; # 升序
+	        select name, sal from temp order by sal asc; # 升序
+	        select name, sal from temp order by desc; # 降序
+	    按照工资的降序排列，当工资向同时再按照名字的升序排列（注:多字段排序时，前面的字段起主导作用，只有前面的字段相等无法排序的时候，才启用后面的字段进行排序）
+	        select name, sal from temp order by sal desc, name asc;
+
+
+	   
+	    分组函数(多行处理函数)一共5个:
+	    多行处理函数: 输入一行，输出多行
+	    分组函数自动忽略null
+	    分组函数不可直接使用在where语句中? 是因为group by是在where执行之后执行的
+	    数据库中有null参与的数学运算结果都为null
+	        count 计数	    select count(字段)/count(*) from 表;
+		 sum	求和       select sum(字段) from 表;
+		 avg	平均值	    select avg(字段) from 表;
+		 max	最大值	    select max(字段) from 表;
+		 min	最小值	    select min(字段) from 表;
+		
+	    单行处理函数:
+	        输入一行，输出一行 输入多行，输出多行
+	        ifnull()单行处理函数 
+		 用法:ifnull(可能为null的数据，被当做什么处理) 例: ifnull(字段，0) ——> 把可能为null的字段 当做0处理
+
+
+	    group by 和 having 搭档 having只是对分完组之后的数据进行过滤
+	    分组函数一般和group by 联合使用 并且任何一个分组函数都是在group by语句执行之后才会执行，当一条sql语句没有group by的话，整张表的数据会自成一组
+	    规则: 当一条sql中有group by的时候 select后面 只能跟参与分组的字段和分组函数 别的字段即使显示也没意义
+	        group by : 按照某个字段或者某些字段进行分组
+		 having : having是对分组之后的数据进行再次过滤
+
+
+	    关于查询结果去重:
+	       distinct 关键字去重 并且只能出现在所有字段的最前面 后面的字段联合去重
+	       select distinct 字段名 from 表名;
+		去重之后统计数量
+		select count(distinct 字段名) from 表名;
+
+
+	2、连接查询:
+	     
+
+	    什么是连接查询: 实际中 一般都是多张表联合查询
+
+	    根据表的连接方式来划分:
+	        内连接
+		   等值连接
+		   非等值连接
+		   自连接
+
+		 外连接
+		   左外连接(左连接)
+		   又外连接(右连接)
+		 全连接
+	    
+	    笛卡尔积现象: 当两张表进行连接查询的时候，没有任何条件进行限制，最终的查询结果条数是两张表记录条数的乘积。
+
+	    避免笛卡尔积现象？ 加条件进行过滤，虽然避免了笛卡尔积现象，但是不会减少匹配次数，只不过显示的是有效记录。
+
+	    2.1、内连接之等值连接:最大特点是 条件是等量关系
+	    例:查询每个员工的部门名称，要求显示员工名和部门名(员工名和部门名是两张表)
+	    SQL92语法(已经不用了)
+		select
+		    e.ename,d.dname
+		from
+		    emp e,dept d
+		where
+		    e.deptno = d.deptno
+	
+	    SQL99语法(常用 结构更清晰 表的连接条件和where的过滤条件分离了)
+		select
+		    e.ename,d.dname                         ……
+		from                                           A表 
+		    emp e                      语法 ——>     join
+              inner join(inner 可省略 表示内连接)              B表
+		    dept d                                  on 
+		on                                             连接条件
+		    e.deptno = d.deptno                     where
+                                                              ……
+
+
+	    2.2、内连接之非等值关系:最大特点 条件关系是非等量关系
+	    例:查询出每个员工的工资等级，要求显示员工名、工资、工资等级(工资和工资等级是两张表 工资等级表是一个范围区间)
+	      
+		select 
+		    e.ename, e.sal, s.grade
+		from
+		    emp e
+		inner join(inner 可省略)
+		    salgrade s
+		on
+		    e.sal between s.losal and s.hisal;
+	    
+
+	    2.3、自连接:最大特点,一张表看成两张表 自己连接自己。
+	    例:找出每个员工的上级领导，要求显示员工名和对应的领导名。(员工和上级领导是同一张表 领导既是员工也是员工的领导 可以当做两张表看 )
+		
+		员工表的领导编号 = 领导表的员工编号 
+		select 
+		    a.ename as ‘员工’, b,ename as ‘领导’
+		from
+		    emp a
+		inner join
+		    emp b
+		on
+		    a.mgr = b.empno    (a.mgr是a表中领导编号，b.empno是b表中员工编号 a和b是同一张表) 
+
+		注: 查询出的结果少了一条，因为b表有一条数据为null 内连接是平等查询 所以会少一条记录 只查询出匹配上的记录
 
 	
+	    2.4、外连接 最主要特点:主表的数据无条件的全部查询出来
+	        内连接:
+		     假设A表和B表进行连接，使用内连接的话，凡是A表和B表能够匹配上的记录查询出来，这就是内连接，AB两张表没有主副之分，两张表是平等的。
+		 外连接:
+		     假设A表和B表进行连接，使用外连接的话，AB两张表中有一张表是主表，一张表是副表，主要查询主表中的数据，捎带着查询副表，当副表中的数据没有和主表中的数据匹配上的话，副表自动模拟出NULL与之匹配。
+
+			
+	
+		 外连接分类:
+		     左外连接(左连接):表示左边的表为主表
+		     右外连接(右连接):表示右边的表为主表
+		     左连接有右连接的写法，右连接也有对应左连接的写法。
+		
+		 
+		 
+		 上面内连接的例子:
+		 使用外连接查询 员工表为主表 左外:
+	        select 
+		    a.ename as ‘员工’, b,ename as ‘领导’
+		 from
+		    emp a
+		 left (outer可省略)join
+		    emp b
+		 on
+		    a.mgr = b.empno;    (a.mgr是a表中领导编号，b.empno是b表中员工编号 a和b是同一张表) 
+		
+
+		 注: 所以查询出的结果为所有员工的记录 b表匹配不到的数据默认设为NULL
+		 
+		 改为右外连接查询就是把a b表调换位置 left join 换位right join
+
+		 select 
+		    a.ename as ‘员工’, b,ename as ‘领导’
+		 from
+		    emp b
+		 right (outer可省略)join
+		    emp a
+		 on
+		    a.mgr = b.empno;
+		
+	    2.5、全连接:
+	 	      把左连接和右连接用 union 连接起来 得到全连接
+
+	    2.6、三张表连接查询:
+		  例: 找出每个员工的部门名称以及工资等级（涉及三张表）
+			
+		          select
+			       e.ename,d.dname,s.grade
+		  	   from
+			       emp e
+			   join
+			       dept d
+			   on
+			       e.depton = d.depton
+			   join
+		              salgrade s
+			   on
+			       e.sal between s.losal and s.hisal;
+		   
+		   在加一个条件 找出每一个员工的名称、工资等级、以及上级领导(需要用外连接，因为有一个员工的上级领导为空 属于匹配记录不平等)
+		   	   select
+			       e.ename ‘员工’,d.dname,s.grade,e1.name ‘领导’
+		  	   from
+			       emp e
+			   join
+			       dept d
+			   on
+			       e.depton = d.depton
+			   join
+		              salgrade s
+			   on
+			       e.sal between s.losal and s.hisal
+			   left join（因为e和e1相比e为主表 所以用左外连接 e和e1为同一张表属于自连接内容）
+			       emp e1
+			   on
+			       e.mgr = e1.empno;
+
+		   
+			   
+	     2.7、子查询
+		   什么是子查询:select语句中嵌套select语句，被嵌套的select语句是子查询
+		   子查询可以用在那里？
+		   select (select) from (select) where (select)
+		   例:找出高于平均薪资的员工信息
+			where后面
+		       select * from emp where sal > (select avg(sal) from emp);
+  		   例:找出每个部门平均薪资的薪资等级
+			from后面(常用 )
+		      第一步:找出每个部门的平均薪水(解析:按照部门编号分组，求sal的平均值)
+		          select depton,avg(sal) as avgsal from emp group by depton;
+		      第二步:将以上的查询结果当做临时表t,让t表和salgrade薪资等级 s表连接，条件是 t.avgsal between s.losal and s.hisal
+		      
+		      select 
+		          t.*,s.grade
+		      from
+		          (select depton,avg(sal) as avgsal from emp group by depton) t    #把第一步的sql语句当做临时表t
+		      join
+		          salgrade s
+		      on
+			   t.avgsal between s.losal and s.hisal
+		       
+	      
+	     	   例:找出每个员工所在的部门名称，要求显示员工名和部门名。
+		       select                                              select
+		  	    e.ename,d.dname                     		       e.ename,						      
+			from							       (seleclt d.dname from dept d where e.deptno = d.deptno) as dname															   from
+			    emp e		        另一种写法(不常见)		emp e;
+			join                         ———>                     
+			    dept d
+			on
+			    e.depton = d.depton
+
+
+	      3、union 可以将查询结果集相加 （相加必须是列数相同才可以）
+		  例: 找出工位岗位是SALESMAN和MANAGEMAN的员工
+		  第一种: select ename,job from emp where job = ‘SALESMAN’ or job = ‘MANAGERMAN’
+		  第二种: select ename,job from emp where job in (‘SALESMAN’,‘MANAGERMAN’)
+
+		  第三种: select ename,job from emp where job = ‘MANAGERMAN’
+			  union
+		  	  select ename,job from emp where job = ‘SALESMAN’
+
+		
+
+	      4、limit(重点 分页查询)
+		  limit是mysql特有的没其他数据库没有，不通用
+		  limit取结果集中的部分数据，这是它的作用
+		  语法机制:
+	  	      limit startIndex,length
+		      startIndex表示起始位置,从0开始，0表示第一个
+		      length表示取几个
+		  例: 取出工资前5名的员工(降序取前5)
+		      select ename,sal from emp order by sal desc limit 0, 5; 
+		      select ename,sal from emp order by sal desc limit 5;  (0可以省略，第一个参数不写默认为0)
+
+		  例: 取出工资排名在4到9名的员工
+		      select ename,sal from emp order by sal desc limit 3, 6;
+
+
+	       4.1、通用的标准分页sql
+		    例: 每页显示3条记录
+		    	 第1页:0, 3
+			 第2页:3, 3
+			 第3页:6, 3
+			 第4页:9, 3
+			 规律:（页码-1）* 每页条数，每页条数
+
+		5、创建表:
+		   建表语法格式:
+		       create table 表名(
+			    字段名1 数据类型，
+			    字段名2 数据类型，
+			    字段名3 数据类型，
+			    …….
+			);
+
+
+		5.1、Mysql当中的字段的数据类型，常见的。
+		     int           整数型
+		     bigint	     长整型
+		     float	     浮点型
+		     char	     定长字符串
+		     varchar	     可变长字符串
+		     date	     日期类型
+		     BLOB	     二进制大对象(图片，视屏等流媒体)
+		     CLOB	     字符大对象(大文本，可以存几个G的字符串)
+
+		     char和varchar怎么选择:
+		         在实际开发中，某个字段的数据长度不发生改变的时候，是定长的，例如:性别、生日等都采用char
+			  当一个字段的数据长度不确定，例如:简介、姓名等都采用varchar
+		     图片或者视频不存在表中 表上只存一个链接
+		     表名在数据库中一般以:t_或者tbl_开头
+
+
+		     例:
+		     创建学生表:
+		         create t_student(
+			      number bigint,
+			      name varchar(255),
+			      sex char(1),
+			      classnu varchar(255),
+			      birth char(10)
+
+			  );
+
+		 5.2、insert 语句插入数据 
+			语法格式:
+			    insert into 表名(字段1，字段2，字段3，….) values(值1，值2，值3，。。。)
+			    字段可以省略 但是value的值的顺序 必须按照表的字段顺序来 并且值的数量不能省略和表的字段数量完全一致
+			    要求: 字段的数量和值的数量相同，并且数据类型要对应相同。
+			注意:当一条insert语句执行成功之后，表格当中必然会多一行记录，
+		       即使多的这一行记录当中某系字段是NULL，后期也没有办法执行，只能通过update进行更新数据
+
+			一次插入多行数据:
+			insert into t_student(no,name,sex,classno,birth) values(….),(….)…;			
+
+
+
+		5.3、表的复制:
+		        语法:
+		   	     create table 表名 as select语句；//将查询结果当做表创建出来
+	       5.4、将查询结果当做数据插入到另一张表中
+		         insert into 表名1 select * from 表名;（表结构需要对应一致）
+
+		6、update 修改数据
+		    update table set 字段名1=值1，字段2=值2..... where 条件;
+		    注:不加条件整张表的数据全部更新
+
+
+		7、删除数据:
+		      语法格式:
+		          delete from 表名 where 条件;
+		  	注:没有条件全部删除
+		       删除所有记录
+			    delete from table;
+		   删除大表(数据量很大非常大)(重点)
+		   truncate table 表名; // 表被截断了，不可回滚，永久丢失
+		   
+
+
+		 7.1、删除表: 
+		       drop table if exists t_student; // 如果这张表存在则删掉
+			create table 表名; //新建表
+			alter //改表结构
+	
+		 CRUD:增删改查
+		 C: Create（增） R:Retrieve（检索） U:Update（修改） D:Delete（删除）			
+
+		8、约束
+		   什么是约束？
+		       在创建表的时候，可以给表的字段添加响应的约束，添加约束的目的是为了保证表中数据的合法性、有效性、完整性
+
+
+		   常见的约束有哪些？
+		       非空约束(not null):约束的字段不能为NULL
+		  	唯一约束(unique):约束的字段不能重复
+			主键约束(primary key):约束的字段既不能为NULL，也不能重复(简称PK)
+			外键约束(foreign key):。。。。(简称FK)
+		       
+
+		8.1、非空约束 not null
+		     例:
+		     drop table if exists 表名;
+		     create table 表名(
+			id int,
+			username varchar(255) not null,
+    			password varchar(255)
+
+			);
+
+
+		
+
+		8.2、唯一性约束(unique)
+		     唯一性约束装饰的字段具有唯一性，不能重复，但可以为NULL
+		     例: 给某一个字段添加unique
+		         drop user if exists 表名;
+			  create table 表名(
+			      id int,
+			      username varchar(255) unique //列级约束
+				);
+		     
+  		     例:给两个或多个字段添加unique （两个或多个字段联合起来唯一，对多列组合有效，单列无效） 
+			  drop user if exists 表名;
+			  create table 表名(
+			      id int,
+			      usercode varchar(255),
+			      username varchar(255), 
+			      unique(usercode,unsername) // 多个字段联合起来添加1个约束unique【表级约束】
+				);
+
+		      注:not null 只有列级约束 没有表级约束
+
+
+		8.3、主键约束
+		     语法:
+		         drop table if exists 表名;
+			  create table 表名(
+			      id int primary key,  //列级约束
+			      username varchar(255),
+			      email varchar(255)
+			  );
+		     
+		     id是主键，因为添加了主键约束，主键字段中的数据不能为NULL，也不能重复.
+		     主键相关的术语:
+		     主键约束 primary key
+		     主键字段 id字段添加primary key之后，id叫做主键字段
+		     主键值   id字段中的每一个值都是主键值
+
+		     主键有什么作用:
+		         表的设计三范式中，第一范式要求任何一张表都应该有主键
+			  作用:主键值是这行记录在这张表当中的唯一标识(就像每个人的身份证一样)
+
+		     主键分类:
+		         根据主键字段的字段数量来划分:
+			      单一主键(推荐的 常用的)
+			      复合主键(多个字段联合起来添加一个主键约束)(复合主键不建议使用 违背了三范式)
+			  根据主键性质划分:
+			      自然主键
+			      业务主键: 主键值和系统业务挂钩 例如:拿着银行卡号或身份证号作主键(不推荐)
+			      最好不要拿着和业务挂钩的字段作为主键，因为业务一旦发生改变的时候，主键值可能也需要变化，但是有的时候没有办法变化，因为变化可能导致主键值重复
+		     注:一张表的主键约束只能有一个
+
+		     使用表级约束方式定义主键:
+		         drop table if exists 表名;
+			  create table 表名(
+			      id int,
+			      username varchar(255),
+			      email varchar(255),
+			      primary key(id)
+			  );
+
+		     mysql提供主键值自增:(重要)
+		         drop table if exists 表名;
+			  create table 表名(
+			      id int primary key auto_increment, //id自增
+			      username varchar(255)
+				);
+			  直接插入值不用给id id是自增的
+
+		 8.4、外键约束
+		      外键约束的术语:
+		          外键约束: foreign key
+			   外键字段: 添加有外键约束的字段
+			   外键值: 外键字段中的每一个值
+
+
+
+		      例: 学生表 和 班级表
+
+			   顺序要求:
+			       删除数据时，先删除子表，再删除父表
+				添加数据时，先添加父表，再添加子表
+				创建表时，先创建父表，再创建子表
+				删除表时，先删除子表，再删除父表
+		      
+			   drop table if exists t_student;
+			   drop table if exists t_class;
+	
+			   create table t_class(
+			       cno int,
+				cname varchar(255),
+				primary key(cno)
+				);
+
+			   create table t_student(
+			       sno int,
+				classno int,
+				sname varchar(255),
+				primary key(sno),
+				foreign key(classno) references t_class(cno)
+				);
+
+			   
+
+		       外键值可以为NULL吗？
+			    外键可以为NULL
+
+			外键字段在引用其他表的某个字段的时候，被引用的字段必须是主键吗？
+			    注: 被引用的字段不一定是主键，但至少具有unique约束。
+
+
+		  9、存储引擎
+			  create table 表名(
+			      id int(20) not null auto_increment,
+			      primary key(id)
+				) engine=InnoDB default charset=utf8;
+			
+		         建表的时候可以指定存储引擎，也可以指定字符集
+			  默认采用的存储引擎是InnoDB方式
+			  默认采用字符集是UTF8
+
+		     查看当前mysql支持的存储引擎: show engines \G;
+
+
+		  9.1 常见的存储引擎:
+		       Engine: MyISAM
+     			Support: YES
+     			Comment: MyISAM storage engine
+			Transactions: NO
+          		XA: NO
+  			Savepoints: NO
+			
+		       MyISAM这种引擎不支持事务 是mysql最常用的
+			特征:
+			    使用三个文件表示每个表
+			        格式文件 -  存储表结构(mytable.frm)
+				 数据文件 -  存储表数据(mytable.MYD)
+				 索引文件 -  存储表上的索引(mytable.MYI)
+
+
+			优点:可被压缩，节省存储空间 并且可以转换为只读表，提高检索效率
+		 	缺点: 不支持事务
+			————————————————————————————————————————————————————————————————————
+			Engine: InnoDB
+     			Support: DEFAULT
+     			Comment: Supports transactions, row-level locking, and foreign keys
+			Transactions: YES
+          		XA: YES
+  			Savepoints: YES
+
+			Mysql默认的引擎
+
+			优点: 支持事务、行级锁、外键等，这种存储引擎数据的安全得到保障
+			特征:
+			    表的结构存储在.frm格式的文件中
+			    表的数据存储在tablespace（逻辑空间）无法被压缩，无法转换只读
+			    提供一组用来记录事务性活动的日志文件
+			    这种InnoDB存储引擎在Mysql数据库崩溃之后提供自动恢复机制
+			    InnoDB支持级联删除和级联更新
+			    支出事务处理 提交 回滚等
+			    
+ 			—————————————————————————————————————————————————————————————————————
+
+			Engine: MEMORY
+     			Support: YES
+     			Comment: Hash based, stored in memory, useful for temporary tables
+			Transactions: NO
+         		XA: NO
+  			Savepoints: NO
+			
+			优点:查询速度最快
+			
+			缺点:不支持事务，数据容易丢失，数据都存储在内存当中
+	
+			特征:
+			    表结构存储在.frm格式的文件中
+			    表数据及索引存储在内存当中
+			    表级锁机制
+			    不能存储大文件或二进制文件BLOB字段
+
+
+			练习:取得每个部门最高薪水的人员名称
+			     第一步:取得每个部门的最高薪水
+			         select deptno,max(sal) as maxsal from emp group by deptno;
+			     第二步:
+				  将以上的结果当做临时表他，t表和emp表 e进行连接，条件是: t.deptno = e.deptno and t.maxsal = e.sal
+				  select
+				      e.ename,t.*
+				  from
+				      (select deptno,max(sal) as maxsal from emp group by deptno) t
+				  join
+				      emp e
+				  on
+				      t.deptno = e.deptno and t.maxsal = e.sal
+
+
+
+		    10、事务（Transaction）
+			 什么是事务？
+			     一个事务是一个完整的业务逻辑单元，不可再分。
+			 比如: 银行账户转账，从A账户向B账户转账，需要执行两条update语句
+			 以上两条语句必须同时成功，或者同时失败，不允许出现一条成功，一条失败
+			 要想保证以上两条DML语句同时成功或同时失败，那么就需要使用数据库的事务机制
+
+		    10.1、和事务相关的语句只有:DML语句 (insert delete update)
+			  为什么？
+			      因为他们三个语句都是和数据库表中的数据相关的 事务的存在就是为了保证数据的完整性，安全性。
+		
+		    10.2、假如所有业务都能使用1条DML语句搞定，就不需要事务机制了，但实际情况不是这样的，通常一个事(业务)需要多条DML语句共同联合完成
+
+		    10.3、 理解事务的原理:
+			    第一步: 开启事务机制(开始)
+			    第二步: 执行多条DML语句 并把执行记录到数据库的操作历史或缓存中，并不会向文件中保存数据，不会真正的修改硬盘上的数据
+			    第三步: 提交或者回滚事务commit/rollback（结束）
+			    提交之后表示事务结束把历史操作同步到硬盘文件当中，当硬盘文件发生改变是，历史操作记录缓存就会被清空
+			    回滚事务表示事务结束，也会清空历史操作记录，但是不会更改硬盘文件
+			   
+			    执行DML
+			    ……
+			    savepoint A1; //此位置保存一个节点 后续可以恢复到此处
+			    后续回滚可以直接rollback A1;
+					
+
+		    	   事务的特性:
+			       事务包括四大特性: ACID
+				A: 原子性: 事务是最小的工作单元，不可再分
+		    		C: 一致性: 事务必须保证多条DML语句同时成功或者同时失败
+				I: 隔离性: 事务A与事务B之间具有隔离性
+				D: 持久性: 持久性说的是最终数据必须持久到硬盘文件中，事务才算成功的结束
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
+
+
+	mysql rsync	
+
+	mysql备份		
+	   mysqldump -uroot -p123456 -A(—all-databases) > 1.sql #备份所有数据库的数据和结构
+	   mysqldump -uroot -p123456 -A(—all-databases) -d > 2.sql #备份所有数据库的结构
+  	   mysqldump -uroot -p123456 -A(—all-databases) -t > 3.sql #备份所有数据库的数据
+	   mysqldump -uroot -p123456 dbname > 4.sql #备份单个数据库的数据和结构
+  	   mysqldump -uroot -p123456 dbname table1 table2 > 5.sql #备份单个数据库的多个表数据和结构
+	   mysqldump -uroot -p123456 -B(—databases) db1 db2 > 6.sql #备份多个数据库
+	
+	
+	mysql还原
+	   mysql -uroot -p123456  db_name < /home/1.sql #home为sql文件的保存路径
+	 或
+          登陆mysql命令行执行 source /home/1.sql #home为sql文件的保存路径
+		
+       另一种备份与还原
+	   test文本备份 select * from student into outfile '/var/lib/mysql-files/tt.txt';  还原 load data infile '/var/lib/mysql-files/tt.txt' into table student;
+
+	mysql设置客户端访问权限
+	    grant all privileges on *.* to ‘root’@‘%’ identified by ‘123456’ with grant option;
+	    flush privileges;
+
 	
 
-2.mysql查看连接进程
-	show processlist;
+
+	mysql修改登录密码编辑/etc/my.cnf
+		[mysqld]
+		skip-grant-tables —->跳过权限验证直接登录
+		修改root密码 先刷新权限相关的表 flush privileges;
+		set password for root@localhost = password(‘123456’);或者
+		use mysql; update user set password=PASSWORD(‘123456’)WHERE user=’root’; 
+		再刷新 flush privileges;
+		最后在注释掉
+		[mysqld]
+		#skip-grant-tables
+		重启mysql服务
+
+	mysql主从复制读写分离分库分表
+		主库从库有相同的数据库和表
+		1.修改主服务器的同步日志my.cnf配置文件
+		     添加
+		     log-bin=master-a-bin #日志文件名称
+		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
+		     server-id=1 #要求各个服务器的这个id不一样
+		     binlog-do-db=需要同步的数据库名称
+		2.设置从服务器登陆主服务器的账号
+		     在主服务器上添加账号
+                     grant replication slave on *.* to ‘root’@‘从服务器ip’ identified by ‘123456’;	
+		     flush privileges;
+		     
+		     注:另外在《Hight Performance MySql》一书中对用户权限的设置有所不同，作者建议在主机和从机上都配置root账户，并同时赋予REPLICATION SLAVE和REPLICATION CLIENT权限，命令如下：
+mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' IDENTIFIED BY 'repl';
+作者解释了这样做的好处：一方面使用同一账户对Replication进行监视管理会很方便，不必区分slave,master，另一方面，repl账户在slave和master上的配制是一样的，这样如果我们切换slave和master，账户不需要做任何改动。
+
+		3.从服务器的配置文件修改my.cnf
+		     添加
+		     log-bin=master-a-bin #日志文件名称
+		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
+		     server-id=2 #要求各个服务器的这个id不一样
+		     log-slave-updates=true  #中继日志这些变化是否计入自己的binlog日志中当你的从服务器需要作为另一台服务器的主服务器的时候需要打开
+		4.重启主服务器mysql服务 主服务器查看日志状态 show master status;show master logs; 然后在mysqldump备份主服务器的数据库
+		5.从服务器mysql服务重启 
+		    设置主从服务的日志、偏移量、登陆的信息
+		    在从服务器上执行	
+		    change master to
+		    master_host=‘主服务器ip’,master_user=‘root’,master_password=‘123456’,master_port=‘3306’,master_log_file=‘在主服务器上show master status 第一列File显示的日志文件名’,master_log_pos=‘主服务器上 show master status 显示的第二行Position 上的数字’;		
+
+		    start slave #开启从服务器
+		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码
+端口等是否都一致	
+
+	mysql读写分离
+	    MYCAT
+	    主服务器操作
+	      下载并安装安装mycat 依赖jdk的环境
+               配置server.xml配置文件 配置数据库信息
+	       配置schema.xml 配置datanode/datehost、writehost/readhost
+	    启动mycat
+	       ./mycat start
+                ps -ef | grep mycat 查看端口
+		登陆mycat数据库的管理端口 mysql -uroot -p123456 -Pmycat端口
+	    自己写程序
+	    
+	    mysql-proxy、Amoeba	   
+
+	mysql MHA（高可用 master故障自动切换slave为主）
+
+
+2.mysql常用函数以及表达式：
+	show processlist;  显示连接进程
 	show status;
+	show variables like '%char%';  查看字符集
+	
+	常用函数
+	length
+	concat
+	substr
+	instr
+	trim
+	upper
+	lower
+	lpad
+	rpad
+	distinct 去重
+	replace
+	
+	round
+	ceil
+	floor
+	truncate
+	mod
+
+	now
+	curdate
+	curtime	
+	str_to_date
+	date_format
+	datediff 日期差
+	
+	version
+	database
+	user
+
+	if
+	case
+	
+	sum
+	avg
+	count
+	max
+	min
+
+	group by 分组查询	
+
+2.1 MongoDB(非关系型数据库中的文档数据库)
+	数据库（多个集合） —-> 集合（多个文档） —> 文档
+	数据库和集合都不需要手动创建不存在就会手动创建 在第一次插入文档的时候创建
+	
+	show dbs —->显示当前所有数据库
+	
+	use + 表名 —->进入到指定数据库
+	
+	db —> 显示当前数据库
+	
+	show collections —-> 查看当前数据库集合
+
+	
+
+
 
 3.web网站访问慢排查都有哪些问题影响
 	客户端
@@ -54,15 +876,21 @@
 
 6.dns解析过程
 	nslookup/dig
-	本地hosts - 浏览器缓存 - 系统缓存 -路由器缓存 - 运营商缓存 - 根域名服务器
+	本地hosts - 浏览器缓存 - 本地域名服务器缓存 - 运营商缓存 - 根域名服务器
 
 7.一个目录大于100k的文件copy到另一个目录
 	ll -h file awk | ‘{print $5}’
+	find . -name ‘*.file’ -size +100k -exce cp -r {} \;
+	find . -size +200M -exec ls -lh {} \; | awk  '{print $5,$9}'
+	
+	find / -name "*teamviewer*" -name "*.plist" -exec rm -f {} \; #找到同时满足两个条件的文件并删除 要是或者的关系加参数 -o
 	
 8.两个服务器拷贝文件的几种方法
-	scp/ftp/wget
+	scp/ftp/wget/rsync
 
 9.nginx rewrite各种参数理解以及相关内容
+	nginx 可以include lua脚本
+
 	last: url重写后，马上发起一个新请求 再次进入server 重新匹配location 超过十次就报500 地址栏不变
 	break: url重写后，直接使用当前资源 不再执行location里剩下的语句 完成本次请求 地址栏不变
 	redirect: 返回临时的重定向 地址栏显示重定向后的url 302 如果有爬虫不会更新url
@@ -81,7 +909,56 @@
 	location / {  
        ****
 	proxy_pass http://name;
-      }
+      }	
+	
+	nginx负载均衡几种方式
+		1）默认轮询的方式 
+		2）权重分配的方式 server 后面加 weight 值越大被分配到的请求书越多
+		3）按照性能，服务器响应的时间分派 —> 用的fair(第三方插件)
+		4）ip_hash （如果客户已经访问了某个服务器，当用户再次访问时，会将该请求通过哈希算法，自动定位到该服务器。每个请求按访问ip的hash结果分配，这样每个访客固定访问一个后端服务器，可以解决session的问题。此种策略，可以实现同一个用户访问同一台服务器，会话不会丢失，但是可能会分配不均）
+		5) url_hash（第三方插件）（此种方式和ip_hash比较类似，根据url的hash值进行分配，将url分配到同一个后端服务器，当服务器存在缓存时比较有效）
+		6）down And backup #down 不参与负载均衡的分配 #非backup的机器(参与负载的机器)，down掉或者忙的时候，请求backup机器。备用机 —>用的fair
+		
+
+
+	nginx和apache区别
+
+	nginx更轻量级占用资源内存少 异步非阻塞的 抗并发高 可以作为反向代理服务器 热升级
+
+	apache同步多进程 nginx异步多个连接对应一个进程 apache 更稳定
+
+
+
+	nginx功能:
+	静态的web服务器
+	反向代理
+	负载均衡
+	虚拟主机	
+	请求转发
+
+
+	nginx 中如果location 是 alias 必须 location 中的根目录 要和 alias 末级的文件夹一致
+
+
+	location /admin {
+          	alias   /home/data/admin;
+          	auth_basic "User Authentication";
+          	auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
+  
+
+	nginx  中如果 location 是 root 必须 location 中的根目录 要包含在 root 目录中最后一级
+
+	location /admin {
+         	root    /home/data;
+          	auth_basic "User Authentication";
+          	auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
+  
+          	}
+
+
+
+
+
 
 10.ansible发送指令慢解决办法
 	关掉 配置文件/etc/ansible/ansible.cfg 中验证秘钥的验证 host_key_checking = False
@@ -102,14 +979,38 @@
 
 15.某台机器上80端口转发到8089端口上的方法
 	本机端口转发:iptables -t nat -A PREROUTING -p tcp - -dport 80 -j REDIRECT - -to-ports 8080
-	不同机器端口转发:
+	不同机器端口转发:iptables -t nat -A PREROUTING(路由前)  -p tcp -d 172.16.4.247 --dport 728 -j DNAT --to-destination 172.16.4.97:80 (DNAT用于端口转发)
+	              iptables -t nat -A POSTROUTING(路由后) -p tcp -s 172.16.4.97/32 -j SNAT --to-source 172.16.4.247 （SNAT用于内网机器的地址转换上网用）
+
 16.linux 防火墙相关设置
 
-17.sed awk 常用方法
+17.sed awk find grep常用方法
+	egrep：使用扩展正则表达式来构建模式，相当于grep –E
+	find . -name ‘*.txt’ -type d -maxdepth 1 -mtime -1 -size +100k -exce cp -r {} /tmp/  找到当前大于100k的一级目录 最新一天修改过的 并copy到tmp目录下
+	find . -type f -exec chmod -R 644 {} \;  当前目录下 所有文件授权644
+	
+	找到log日志文件删除30天以前的 ：find . -type f -name “*.log” -mtime +30 -exec rm -rf {} \;
+
+	grep “([0-9]{1,3}\.){3}[0-9]{1,3}$” file 匹配ip地址
+
+	awk -F ‘:’ ’{print $1，$NF} ‘ file | head -5 打印文件的第一列前五个	
+	
+	sed ‘$d’ file 删除 file文件的最后一行  
+	sed -i ’s/原内容/替换内容/1’ file 替换字符串 s 参数是替换 1是替换第一个行以此类推 替换所有行用g
+	
+
+	sort uniq -c 去重并统计次数 sort -nr 倒序并按照大到小排序
+
+	tcpdump嗅探80端口看谁访问最高
+		tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F"." '{print $1"."$2"."$3"."$4}' | sort | uniq -c | sort -nr |head -5&nbsp;
+shell
+	
+		
 
 18.gitlab的安装配置以及备份还原
 
 19.mysql、redis、php等编译安装
+	musql初始设置 /etc/my.cnf 开启二进制日志 log-bin
 
 
 
@@ -128,101 +1029,556 @@
 	
 
 
-22.Docker-file一些命令 docker-file是干什么的
-	
-	配置阿里的镜像源
-	docker pull下载拉取一个镜像
-
-	docker built -f + 文件目录 -t + 新镜像名字 + ‘.’ Dokerfile 文件所在目录 也可以是绝对路径
-	
-	docker images查看生成的镜像
-
-	docker run -itd + 镜像id或者名字:加版本
-
-	docker-file是用来构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
-	写docker-file —> bulid —> run 三步骤
-
-	docker run -it -p 7777:8080 tomcat 映射容器的端口
-
-	docker history + 镜像id 查看镜像的生成过程
-	
-	格式：
-	FROM 原镜像 Base镜像（scrath）
-	MAINTAINER 作者和邮箱的一些信息
-	ADD 
-	LABEL
-
-
-
-
-	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行)
-	
-	基本知识：（1）每条保留字指令都必须为大写字母且后面要至少跟随一个参数
-		（2）指令从上到下顺序执行
-		（3）每条指令都会创建一个镜像层，并对镜像进行提交
-
-	执行的大致流程：（1） docker从基础镜像运行一个容器
-		     （2） 执行每一条指令并对容器进行修改
-		     （3） 执行类似docker commit 的命令提交一个新的镜像层     ——>  最终形成一个镜像
-		     （4） docker 在基于刚才提交的镜像运行一个新容器
-		     （5） 执行dockerfile中的每一条指令到所有都完成
-
-
-
-
-	FROM ：基础经镜像的来源
 	
 
-23.shell python
+22.shell python
+	rpm -qa | grep 查询你安装过的软件包
+	rpm -ivh   安装rpm包 --force --nodeps是表示不检查依赖强制安装
+	新建20个用户的sh脚本
+	seq -f"%02g" 1 20 —> 产生1-20中间的整数不足用0补位
+	for i in `seq -f"%02g" 1 20`;do
+	useradd user$i
+	echo "user$i-`echo $RANDOM|md5sum|cut -c 1-5`"|passwd –stdinuser$i >/dev/null 2>&1
+	done
+
+	软连接相当于快捷方式 硬链接相当于复制了一份占空间
+	df -h 查看文件系统空间使用情况 df -i 查看inode节点数占用情况
+	正则表达式
+ 	   匹配电话号码 result = re.match(r”1[3,5,6,7,8]\d{9}”,tel)
 
 
 
 
-、、、
+23.zabbix相关只是点zabbix_proxy
+	
+	zbbbix安装步骤:
+		https://www.zabbix.com/cn/
+		
 
-nginx和apache区别
+	zabbix客户端安装 zabbix-agent zabbix-sender
+	编辑/etc/zabbix/zabbix_agentd.conf的配置文件
+	修改Server服务端的 IP地址
+	修改主动模式下ServerActive服务端的IP地址
+	修改Hostname 这个对应的是zabbix-server端web界面创建host时的主机名保持一致
+	然后启动zabbix-agent.service
 
-nginx更轻量级占用资源内存少 异步非阻塞的 抗并发高 可以作为反向代理服务器 热升级
+	手动添加:
+		server端添加host configuration - Hosts - Create host
 
-apache同步多进程 nginx异步多个连接对应一个进程 apache 更稳定
+		添加完主机 - items代表要监控的项目 items - create item
 
+		自定义监控内容 自定义key 编辑zabbix_agentd.conf下面一个配置文件内容监控内存使用：UserParameter=memory.used,/usr/bin/free -mh |/usr/bin/awk ‘/^Mem/{print $3}’ 
+		重启agent服务
 
+		server端命令行获取agent数据 zabbix_get 命令 先yum -y install zabbix_get 命令 再用zabbix_get -s agentip地址 -p agent端口号 -k “自定义文件里面的名称（memory.user）”
+		检查没问题之后 server端web页面添加自定义的item即可（数据刷新有点延迟）
+		
+	添加监控的模板
+		点开主机名 - 模板 - 添加 - 更新  —->自动添加模板的监控项
 
-
-
-
-nginx功能:
-静态的web服务器
-反向代理
-负载均衡
-虚拟主机
-请求转发
-
-
-nginx 中如果location 是 alias 必须 location 中的根目录 要和 alias 末级的文件夹一致
-
-
-location /admin {
-          alias   /home/data/admin;
-          auth_basic "User Authentication";
-          auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
-  
-
-nginx  中如果 location 是 root 必须 location 中的根目录 要包含在 root 目录中最后一级
-
-location /admin {
-         root    /home/data;
-          auth_basic "User Authentication";
-          auth_basic_user_file "/etc/nginx/conf.d/nginxuser";
-  
-          }
+	自动发现策略:
 
 
+		server端 configuration - create discover
+
+		配置自动发现规则 名称 - IP地址范围 - 更新时间
+
+		自动发现并添加主机清单 —->用到模板
+
+
+	zabbix-proxy(分布式)
+
+		和server端不是一个机器
+		下载安装zabbix proxy
+		yum install -y zabbix-proxy zabbix-proxy-mysql zabbix-agent
+		创建zabbix_proxy数据库
+		解压zabbix软件包 在解压完的目录里有个database导入两个sql文件
+		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/schema.sql
+		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/images.sql
+				
+		安装完zabbix_proxy 会在/usr/local/zabbix/etc/下产生一个zabbix_proxy.conf文件
+		配置server端ip hostname 本机主机ip 以及数据库名的账号密码、发送提交数据给服务端的时间等设置
+
+		设置好之后再服务端的web界面添加zabbix_proxy - create proxy - 添加代理服务器ip - 主动模式 - 添加
+		添加好代理服务器之后 选择添加主机 如上面 手动添加过程 注意添加时选择是有代理服务器检测而不是server端监控
+		添加好的主机也要选择监控项添加一个模板 如自动发现的模板
+		客户端的/us/local/zabbix/etc/zabbix_agentd.conf 里面把指向server端的ip改成指向proxy端的ip地址才能获取到数据
+		
+		
 
 
 
-docker
-zabbix
+24.gitlab-ci
+	持续集成: 持续集成是一天多次将代码合并到主干 通过自动构建的方式验证每次提交 尽早发现问题
+	持续集成的价值: 保持随时部署 简化发布流程 尽早发现问题
+
+		
+25.CMDB
+    配置管理数据库
+
+
+
+
+26.rsync
+
+	
+
+
+
+
+
+
+27.lvs(linux虚拟服务器 相当于调度器)	
+	集群:多台主机联合起来对外提供一个服务单一系统
+	LB:负载均衡
+	HA:高可用（）
+	HPC:高性能
+	
+	keepalived 解决lvs单点故障问题
+    分布式存储:云盘 （把一个大文件拆分若干小块 每个机器上存储一部分数据 不同机器上会有相同块数据存储）
+
+
+
+28.ansible（性能200-300台机器）
+	ansible-doc + 模块名字 查看说明
+	ansible all -m setup -a ‘filter=“ansible_fqdn”’(setup 系统自带变量) -m 指定模块 -a 执行的命令
+	playbook（.yml文件）
+	格式	
+	— - -
+	- hosts: all
+	  remote_user: root (以什么身份访问其他服务器)
+
+          vars_files:  —->定义变量
+	    - vars.yml	—->引用vars.yml这个文件中的变量 下面的tasks里可以调用	
+	  tasks:
+	   - name: 自定义功能名字表示这个是做什么的
+	     file(指定要用到模块): name=/data/{{ ansible_fqdn}}.log state=touch mode=600    —->引用变量用{{}} state 指定操作类型
+		
+           - name: install package
+	     yum: name=httpd state=present（默认为present）  —->指定state=present为安装 yum 中的state包括（installed=present、absent=removed、latest=最新安装包）
+		
+
+	运行 playbook
+	    ansible-playbook -C + *.yml （-C检查语法）不加C就直接运行 -e 添加指定变量
+	
+
+	template
+	    文件名以.j2结尾的 用的是jinja2语言
+	    复制模板拷贝文件
+	- - - 
+	- hosts: all
+	  remote_user: root
+          
+          tasks:
+	   - name: install package
+   	     yum: name=nginx
+	   - name: copy template for centos7
+	     template: src=nginxconf7.j2 dest=/etc/nginx/nginx.conf/ backup=yes (如果文件有改动就把dest这个目录下原有的那个文件备份)
+	     when: ansible_distribution_major_version==‘7’
+	     notify: restart service 
+	   - name: copy template for centos6
+	     template: src=nginxconf6.j2 dest=/etc/nginx/nginx.conf/ backup=yes 
+	     when: ansible_distribution_major_version==‘6’
+	     notify: restart service 
+
+	   - name: start service
+   	     service: name=nginx state=start enabled=yes
+	  
+	  handlers:
+	   - name: restart service
+	     service: name=nginx state=restarted
+
+	  notify 和 handlers 是配合使用 tasks里添加的notify触发handler下面的内容
+	  when 判断系统版本 ansible_distribution_major_version（内置变量）是 centos7 还是 centos6 拷贝不通的文件
+
+
+
+29.tcp/ip 协议
+	传输控制协议/互联网协议 
+	包括的协议有:tcp、ip、udp、icmp、telnet、ftp、smtp、arp等
+	历史悠久前身是ARP网络诞生和unix一样诞生1969年 早于OSI参考模型
+	四层:网络访问层 - 网络层 - 传输层 - 应用层
+	
+	应用层协议有:http、https ftp smtp dns telnet
+
+	下层协议为上层协议提供服务
+	
+	tcp               udp 
+	可靠	            不可靠
+	面向连接           非面向不连接
+	数据打包/成段/排序   传输性能高
+	错误检查		 无数据恢复
+	确认机制
+	数据恢复、重传
+	
+
+	tcp报头：
+		第一层 0-15位:源端口 | 16-31:目的端口
+		第二层	序号 （自己发出去的序号）
+		第三层 确认号 （对方发过来的序号）
+		第四层 数据偏移（数据包头部长度 不确定） | 保留位 | URG(紧急指针位) ACK(确认) PSH(判断数据是否保留在缓存中) RST(重置位) SYN(建立连接使用 SYN=1 ACK=0 同步序号) FIN(结束)（6个标记位）| 窗口(数据的大小)
+		第五层	校验位 | 紧急指针
+		第六层	可变长度
+		
+	UDP报头:
+		第一层 源端口 目的端口
+		第二层 长度	校验
+		第三层 数据
+	
+	ARP先广播拿到mac地址再进行tcp三次握手
+	tcp三次握手:
+		客户端主动连服务器
+		第一步:客户端发送一个SYN位=1和ACK=0 的建立连接的请求 （客户端:close状态 - send状态）
+		第二步:服务端回一个SYN位=1和一个ACK位=1 确认收到请求	 （服务端:close状态 - listen状态  服务端:listen - received 状态）
+		第三步:客户端回一个ACK位=1的确认 并建立连接（三次握手代表双向确认可靠）（客户端:send - established状态 服务端:received - established状态）
+
+
+	tcp四次挥手:
+		客户端和服务端都有可能发起断开请求
+		第一步:客户端发起FIN位=1的包断开请求 (客:establised状态 - fin-wait1状态)
+		第二步:服务端回一个ACK位=1的包意思为收到了这个请求（服:establised状态 - close-wait状态 ）
+		第三步:服务端再回一个FIN位=1包和ACK位=1的包意思也同意断开 （客:fin-wait1 - fin-wait2状态 服:close-wait - last-ack状态）
+		第四步:客户端最后确认断开回一个ACK包 并断开连接 （客:fin-wait2 - time-wait状态 服:last-ack - closed状态 客:time-wait - closed状态）
+		
+	
+	知道ip通过ARP获得mac地址 再进行三次握手
+
+	ARP
+
+	IP
+        数据包头部信息: 以太网帧头部信息(最大1500 再大就拆分包) - ip头部 - tcp/udp头部 - 数据(应用层) - 校验位
+	  无面向连接 网络层 分层地址 尽力转发 无数据修复
+        IP报文头部:
+		第一层 版本号(IPV4) | 长度 | 区分服务 | 总长度
+		第二层 标识(切分包的标识) |  标志  | 偏移量		
+		第三层 生存时间(TTL time to live 经过路由器的数量) | 协议(上层协议类型) | 校验
+		第四层 源地址
+		第五层	目的地址
+		第六层 可选长度
+		第七层 数据		
+		
+	   IP地址：
+	    	两部分组成:主机位 + 网络位
+		ip地址最多32位
+		每个网段的最多可用ip数=2^(n-2) n为32-此网段掩码
+		A类:0-127.0.0.0(前8位是网络位) B类:128-191.0.0.0(前16位是网络位) C类:192-223.0.0.0(前24位是网络位) D类:224-239.0.0.0
+		私有地址:
+		10.0.0.0-10.255.255.255
+		172.16.0.0-172.31.255.255
+		192.168.0.0-192.168.255.255
+		
+
+	
+	ICMP
+
+
+30.python 理解__str__ and  __repr__
+	
+	两者都是用来实现类的订制
+
+	__repr__ 在使用内建函数 repr()进自动调用
+
+	__str__ 在使用print()进自动调用
+	
+	好的习惯把这两个定制方法进行重写,从而在输出显示时更方便
+	
+	例如:
+		class Test(object):
+    			def __init__(self,value):
+        		self.value = value
+		t = Test(’name’)
+		print(t)
+		得到的结果是 :<__main__.Test object at 0x108eb7e10> 显示内存地址
+		
+		class Test(object):
+    			def __init__(self,value):
+        		self.value = value
+        
+    			def __str__(self):
+
+        		    return 'test - <%s>' % self.value
+
+    			def __repr__(self):
+			
+        		    return 'test2 - <%s>' % self.value
+		
+		得到的结果: test - <name>
+		
+		自定义类的显示结果	
+	
+	理解lamada函数和yield
+	
+		lamada匿名函数:
+			定义了一个表达式 简化了函数定义的书写使得代码更加简洁
+			举一个简单的例子：
+			def f(x):
+  			    return x**2
+
+			Python中使用lambda的话，写成这样
+			g = lambda x : x**2
+		
+		例:
+		def testFun():
+    		    temp = [lambda x:i*x for i in range(4)]              def testFun():
+									            temp = []
+    		    return temp                                   ————>      for i in range(4)
+								                       temp.append(lamdba x:i*x)
+	   	for i in testFun():                            		     return temp
+										直接调用函数:print(testFun()) 返回的是一个lambda函数对象
+										<function testFun.<locals>.<listcomp>.<lambda> at 0x10a011950>
+										将函数赋值 r = testFun() 再重新对变量赋值 才是lambda返回的值 print(r(2))
+		    print(i(2))    
+		
+		输出结果:
+		>>>6 6 6 6
+
+		说明:使用lambda的时候，如果不实时指定参数就会用到最后一个 所以每次循环只输出for循环中的最后一位即每次输出2*3
+
+		函数中嵌套lamdba的转换:
+		def FunA(x):
+		    def FunB(y):
+		        for i in range(4):
+			    pass
+			return i*y
+		    return FunB
+
+
+		上述例子如果要输出0，2，4，6
+		改成
+		def testFun():
+		    temp=[lambda x,i=i:i*x for i in range(4)]  ——->每次循环调用lambda对i重新赋值 否则只会调用最后一个
+		    return temp
+
+		for i in testFun():
+		    print(i(2))
+		输出结果:
+		>>>0 2 4 6
+
+
+		配合map()函数使用
+		遍历序列，对序列中每个元素进行操作，最终获取新的序列。
+		li = [11, 22, 33]
+		sl = [1, 2, 3]
+		new_list = map(lambda a, b: a + b, li, sl)
+		print(list(new_list))
+		结果输出为：
+		>>>[12,24,36]
+
+		配合reduce()函数使用
+		对于序列内所有元素进行累计操作
+		from functools import reduce
+		li = [11,22,33]
+		result = reduce(lambda a,b:a+b,li)
+		# reduce的第一个参数，函数必须要有两个参数
+		# reduce的第二个参数，要循环的序列
+		# reduce的第三个参数，初始值
+		print(result)
+		输出结果：
+		>>>66
+
+		配合filter()函数使用
+		对于序列中的元素进行筛选，最终获取符合条件的序列
+		li = [11,22,33]
+		new_list = filter(lambda a:a>22,li)
+		print(list(new_list))
+		#filter第一个参数为空，将获取原来序列
+		输出结果：
+		>>>[33]
+
+		
+		yield 是一个生成器（调用 next 方法才会返回值）
+		例子:
+		def foo():
+    		    print("starting...")
+                 while True:
+                    res = yield 4
+                    print("res:",res)
+
+            g = foo()
+            print(next(g))
+            print("*"*20)
+	      print(next(g))
+
+		输出结果
+		starting...
+		4
+		********************
+		res: None
+		4
+
+		
+		分析:
+		1.当第一次调用程序的时候并没有返回值 所以foo函数并不会真的执行，而是先得到一个生成器g(相当于一个对象)
+		2.直到调用next方法，foo函数正式开始执行，先执行foo函数中的print方法，然后进入while循环
+		3.程序遇到yield关键字，然后把yield想想成return,return了一个4之后，程序停止，并没有执行赋值给res操作，此时next(g)语句执行完成，所以输出的前两行（第一个是while上面的print的结果,第二个是return出的结果）是执行第一个print(next(g))的结果，
+		4.程序执行print("*"*20)，输出20个*
+		5.又开始执行下面的print(next(g)),这个时候和上面那个差不多，不过不同的是，这个时候是从刚才那个next程序停止的地方开始执行的，也就是要执行res的赋值操作，这时候要注意，这个时候赋值操作的右边是没有值的（因为刚才那个是return出去了，并没有给赋值操作的左边传参数），所以这个时候res赋值是None,所以接着下面的输出就是res:None,
+		6.程序会继续在while里执行，又一次碰到yield,这个时候同样return 出4，然后程序停止，print函数输出的4就是这次return出的4.
+		
+		理解:
+		到这里你可能就明白yield和return的关系和区别了，带yield的函数是一个生成器，而不是一个函数了，这个生成器有一个函数就是next函数，next就相当于“下一步”生成哪个数，这一次的next开始的地方是接着上一次的next停止的地方执行的，所以调用next的时候，生成器并不会从foo函数的开始执行，只是接着上一步停止的地方开始，然后遇到yield后，return出要生成的数，此步就结束。
+
+		
+
+	python 多线程 多进程 （多线程共享全局变量 进程之间相互独立）
+	    现有进程 才有线程  线程依赖于进程
+	    并行:真的多任务
+	    并发:加的多任务一起
+	    多线程:资源少，操作系统调度的单位 真正执行的是线程            ——> 进程就是工厂中的一条流水线 线程就是流水线上的工人
+	    多进程:消耗资源多 资源浪费 资源分配的单位
+ 
+	    线程池 - 重复利用  线程中异常不打印出来
+	    线程池中创建队列队列 用的是 multiprocessing.Manager()下面的Queue 而不是 queue中的Queue 
+	    queue = multiprocessing.Manager().Queue() 
+
+
+
+
+	迭代器:
+	    迭代器占用的空间资源小 只是返回一个对象 实现的方法 而不存储数据
+	    不仅是for循环用到的迭代器 数据类型转换的如 list、tuple的转换也用到了迭代器
+	    
+	    如果这个对象可迭代 首先必须这个类里面要有__iter__方法  说明这个类可迭代
+	    并且这个方法必须返回一个具有__next__和__iter__方法的引用(即就是返回self 返回自己 然后自己再有一个 __next__发方法) 就说这个类是个迭代器
+	    for 循环其实就是调用 具有__next__和__iter__方法的这个类 里面的__next__(self)方法返回的东西
+
+	    总结:如果一个对象是个迭代器 那他肯定是可迭代的  如果一个可迭代的对象 不一定是一个迭代器
+		
+	    
+
+
+
+	生成器:
+	    生成器是一种特殊的迭代器 不是类是个函数 没有next和iter方法
+	    创建生成器的第一种方法: 
+	    列表推导式的中括号变成 小括号
+	    num = [x for x in range(10)]  ———> 返回的是一个列表
+
+	    num = (x for x in range(10))  ———> 返回的是一个生成器	    
+	
+	    创建生成器的第二种方法:
+	    函数中有yield 这个函数就变成了 生成器   可以用next方法调用对象返回值 还可以用 对象.send()的方法启动生成器 并且可以传参数 参数传给yield返回的值ß
+	    函数碰到yield就暂停并把yield后面的值返回 下次再调用的时候接着上次暂停的地方继续执行 而不是从头开始
+	    
+
+
+
+	yield实现多任务 并行交替实现:
+	import time
+
+	def task1():
+    	    while True:
+                print('---1---')
+                time.sleep(0.1)
+                yield
+
+	def task2():
+            while True:
+                print('---2---')
+                time.sleep(0.1)
+                yield
+
+	def main():
+    	    t1 = task1()
+            t2 = task2()
+    	    while True:
+                next(t1)
+                next(t2)
+        if __name__== "__main__":
+    	    main()
+	    
+	进程、线程、协程 对比:
+	    1）进程是资源分配的单位
+	    2）线程是操作系统调度的单位
+	    3）进程切换需要的资源很大 效率低
+	    4）线程切换需要的资源一般 效率一般
+	    5）协程切换任务需要的资源很小 效率高 (网络io多的一般用这个)
+	    6）多进程、多线程根据cpu的核数不一样可能是并行的 但是协程在一个线程中 是并发的（并行是多个任务同时处理一个任务一个cpu 并发是多个程序同时运行在一个cpu上进行切换）
+	    
+	
+	python做过哪些东西:
+		1)第一个服务:
+		  修改sslvpn和l2tpvpn的密码 逻辑:随机生成密码 先模拟登陆web端 请求修改密码的接口修改指定用户密码 再登陆路由器执行命令修改用指定户密码 并发邮件
+		  现在l2tpvpn的密码还是这样修改同一个用户每天密码一样 现在的sslvpn的密码通过ldap上修改每个人每天的密码不一致
+		2)第二个服务:
+	  	  flask接口 传给我这个接口一个新入职人员的邮箱用户名 我会把这个用户名记录下来 （uwsgi部署这个flask）
+		  另一个脚本去 拿到这个用户名	模拟登陆oa系统 请求开通权限的接口 完成配置保存
+		3)类似于跳板机的内部网络设备登陆终端界面:
+		  类似于跳板机的快速登录内部网络设备的终端界面 可以提供设备增加删除修改功能 也可以对路由器路由表的增删改查功能
+		  逻辑:把所有机器的账号密码保存在pickle文件中 主要逻辑就是telnet或者ssh连接设备 并执行相关命令 
+	   	4)爬虫方面:
+		  平时酷爱爬虫方面的东西 几乎内网的系统web界面的都爬取过
+		  oa系统:模拟登陆 请求接口 提交数据 修改员工账号密码
+		  coremail系统:模拟登陆 请求接口 修改员工密码 / 请求接口 拉取每天邮件收发量情况 判断有没有被盗号大量外发邮件的情况 每小时执行的定时任务 有异常发邮件提醒
+		  AC控制器:模拟登陆 拉取在线AP数量以及每个AP上client数量打印终端上 以及重启单个AP或者所有AP 逻辑是登陆ac控制器 执行命令 还有查询单个mac地址所在AP
+		  wiki系统:修改用户密码 模拟登陆 请求接口 提交数据
+		  
+		  外部系统爬虫豆瓣、微博、简书、拉勾等网站 下载信息 清洗数据 存数据库或者csv 或者图形展示 
+
+
+	CDN入门:
+	    1.什么是cdn
+		 内容分发网络 - 一套系统
+	         一种透过互联网相互连接的计算机网络系统 达到的目标 快/稳
+
+	    2.为什么要用cdn
+	        多个基础运营商
+			提高用户访问速度
+			多节点冗余 提高可靠性
+
+	    3.主要类型
+			静态加速(txt、jpg、MP4、m3u8) 源站 - 二级节点
+			动态CDN加速(反向代理)
+			直播CDN加速(rtmp、httpflv(拉流)) 直播 - rtmp 推流
+
+	    4.调度方法
+			传统dns（CNAME）
+			HttpDNS(api接口)
+
+
+
+ 	    5.计费方式
+			按流量或带宽
+			按日峰值月平均
+			按95峰值带宽计费
+
+	    6.常见故障
+			调度错误
+			请求劫持
+			节点故障
+			回源失败(源站故障)
+
+
+
+
+
+
+
+高可用性
+
+jumpserver
+
+Web scraper
+
+pyppeteer 爬虫库
+ 
+ELK
+
+Nginx 防盗链 、动静分离
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
