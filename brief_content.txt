@@ -23,7 +23,6 @@
 	
 	mysql的存储类型
 
-<<<<<<< HEAD
 	mysql数据库设计三范式：
 	    1.什么是设计范式？
 	        设计表的依据，按照这个三范式设计的表不会出现数据冗余
@@ -710,133 +709,8 @@
 	   mysqldump -uroot -p123456 dbname > 4.sql #备份单个数据库的数据和结构
   	   mysqldump -uroot -p123456 dbname table1 table2 > 5.sql #备份单个数据库的多个表数据和结构
 	   mysqldump -uroot -p123456 -B(—databases) db1 db2 > 6.sql #备份多个数据库
-=======
-
-	mysql备份
-	   mysql rsync	
-	   备份sql文件 mysqldump -uroot -p123456 -B 数据库名 表名> test.sql  还原 mysql -uroot -p123456 数据库名 < test.sql
-           test文本备份 select * from student into outfile '/var/lib/mysql-files/tt.txt';  还原 load data infile '/var/lib/mysql-files/tt.txt' into table student;
-	mysql设置客户端访问权限
-	    grant all privileges on *.* to ‘root’@‘%’ identified by ‘123456’ with grant option;
-	    flush privileges;
-
-	mysql修改登录密码编辑/etc/my.cnf
-		[mysqld]
-		 skip-grant-tables —->跳过权限验证直接登录
-		修改root密码 先刷新权限相关的表 flush privileges;
-		set password for root@localhost = password(‘123456’);或者
-		use mysql; update user set password=PASSWORD(‘123456’)WHERE user=’root’; 
-		再刷新 flush privileges;
-		最后在注释掉
-		[mysqld]
-		#skip-grant-tables
-		重启mysql服务
-
-	mysql主从复制读写分离分库分表
-		主库从库有相同的数据库和表
-		1.修改主服务器的同步日志my.cnf配置文件
-		     添加
-		     log-bin=master-a-bin #日志文件名称
-		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
-		     server-id=1 #要求各个服务器的这个id不一样
-		     binlog-do-db=需要同步的数据库名称
-		2.设置从服务器登陆主服务器的账号
-		     在主服务器上添加账号
-                     grant replication slave on *.* to ‘root’@‘从服务器ip’ identified by ‘123456’;	
-		     flush privileges;
-		     
-		     注:另外在《Hight Performance MySql》一书中对用户权限的设置有所不同，作者建议在主机和从机上都配置root账户，并同时赋予REPLICATION SLAVE和REPLICATION CLIENT权限，命令如下：
-mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' IDENTIFIED BY 'repl';
-作者解释了这样做的好处：一方面使用同一账户对Replication进行监视管理会很方便，不必区分slave,master，另一方面，repl账户在slave和master上的配制是一样的，这样如果我们切换slave和master，账户不需要做任何改动。
-
-		3.从服务器的配置文件修改my.cnf
-		     添加
-		     log-bin=master-a-bin #日志文件名称
-		     binlog-format=ROW	#二进制日志格式 有row、statement、mixed三种类型
-		     server-id=2 #要求各个服务器的这个id不一样
-		     log-slave-updates=true  #中继日志这些变化是否计入自己的binlog日志中当你的从服务器需要作为另一台服务器的主服务器的时候需要打开
-		4.重启主服务器mysql服务 主服务器查看日志状态 show master status;show master logs; 然后在mysqldump备份主服务器的数据库
-		5.从服务器mysql服务重启 
-		    设置主从服务的日志、偏移量、登陆的信息
-		    在从服务器上执行	
-		    change master to
-		    master_host=‘主服务器ip’,master_user=‘root’,master_password=‘123456’,master_port=‘3306’,master_log_file=‘在主服务器上show master status 第一列File显示的日志文件名’,master_log_pos=‘主服务器上 show master status 显示的第二行Position 上的数字’;		
-
-		    start slave #开启从服务器
-		    show slave status\G;查看状态 主要查看slave_io_running和slave_sql_running状态是否都为有yes、日志名字、偏移量位置position、主服务器的账号密码
-端口等是否都一致	
-
-	mysql读写分离
-	    MYCAT
-	    主服务器操作
-	      下载并安装安装mycat 依赖jdk的环境
-               配置server.xml配置文件 配置数据库信息
-	       配置schema.xml 配置datanode/datehost、writehost/readhost
-	    启动mycat
-	       ./mycat start
-                ps -ef | grep mycat 查看端口
-		登陆mycat数据库的管理端口 mysql -uroot -p123456 -Pmycat端口
-	    自己写程序
-	    
-	    mysql-proxy、Amoeba	   
-
-	mysql MHA（高可用 master故障自动切换slave为主）
-
-
-2.mysql常用函数以及表达式：
-	show processlist;  显示连接进程
-	show status;
-	show variables like '%char%';  查看字符集
 	
-	常用函数
-	length
-	concat
-	substr
-	instr
-	trim
-	upper
-	lower
-	lpad
-	rpad
-	distinct 去重
-	replace
 	
-	round
-	ceil
-	floor
-	truncate
-	mod
-
-	now
-	curdate
-	curtime	
-	str_to_date
-	date_format
-	datediff 日期差
-	
-	version
-	database
-	user
-
-	if
-	case
-	
-	sum
-	avg
-	count
-	max
-	min
-
-	group by 分组查询	
-
-2.1 MongoDB(非关系型数据库中的文档数据库)
-	数据库（多个集合） —-> 集合（多个文档） —> 文档
-	数据库和集合都不需要手动创建不存在就会手动创建 在第一次插入文档的时候创建
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
-	
-	show dbs —->显示当前所有数据库
-	
-<<<<<<< HEAD
 	mysql还原
 	   mysql -uroot -p123456  db_name < /home/1.sql #home为sql文件的保存路径
 	 或
@@ -848,18 +722,10 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	mysql设置客户端访问权限
 	    grant all privileges on *.* to ‘root’@‘%’ identified by ‘123456’ with grant option;
 	    flush privileges;
-=======
-	use + 表名 —->进入到指定数据库
-	
-	db —> 显示当前数据库
-	
-	show collections —-> 查看当前数据库集合
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 
 	
 
 
-<<<<<<< HEAD
 	mysql修改登录密码编辑/etc/my.cnf
 		[mysqld]
 		skip-grant-tables —->跳过权限验证直接登录
@@ -984,8 +850,6 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	
 
 
-=======
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 
 3.web网站访问慢排查都有哪些问题影响
 	客户端
@@ -1018,21 +882,14 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	ll -h file awk | ‘{print $5}’
 	find . -name ‘*.file’ -size +100k -exce cp -r {} \;
 	find . -size +200M -exec ls -lh {} \; | awk  '{print $5,$9}'
-<<<<<<< HEAD
 	
 	find / -name "*teamviewer*" -name "*.plist" -exec rm -f {} \; #找到同时满足两个条件的文件并删除 要是或者的关系加参数 -o
-=======
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 	
 8.两个服务器拷贝文件的几种方法
 	scp/ftp/wget/rsync
 
 9.nginx rewrite各种参数理解以及相关内容
-<<<<<<< HEAD
 	nginx 可以include lua脚本
-=======
-	nginx 可以挂在lua脚本
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 
 	last: url重写后，马上发起一个新请求 再次进入server 重新匹配location 超过十次就报500 地址栏不变
 	break: url重写后，直接使用当前资源 不再执行location里剩下的语句 完成本次请求 地址栏不变
@@ -1197,7 +1054,6 @@ shell
 	zbbbix安装步骤:
 		https://www.zabbix.com/cn/
 		
-<<<<<<< HEAD
 
 	zabbix客户端安装 zabbix-agent zabbix-sender
 	编辑/etc/zabbix/zabbix_agentd.conf的配置文件
@@ -1265,75 +1121,6 @@ shell
 
 26.rsync
 
-=======
-
-	zabbix客户端安装 zabbix-agent zabbix-sender
-	编辑/etc/zabbix/zabbix_agentd.conf的配置文件
-	修改Server服务端的 IP地址
-	修改主动模式下ServerActive服务端的IP地址
-	修改Hostname 这个对应的是zabbix-server端web界面创建host时的主机名保持一致
-	然后启动zabbix-agent.service
-
-	手动添加:
-		server端添加host configuration - Hosts - Create host
-
-		添加完主机 - items代表要监控的项目 items - create item
-
-		自定义监控内容 自定义key 编辑zabbix_agentd.conf下面一个配置文件内容监控内存使用：UserParameter=memory.used,/usr/bin/free -mh |/usr/bin/awk ‘/^Mem/{print $3}’ 
-		重启agent服务
-
-		server端命令行获取agent数据 zabbix_get 命令 先yum -y install zabbix_get 命令 再用zabbix_get -s agentip地址 -p agent端口号 -k “自定义文件里面的名称（memory.user）”
-		检查没问题之后 server端web页面添加自定义的item即可（数据刷新有点延迟）
-		
-	添加监控的模板
-		点开主机名 - 模板 - 添加 - 更新  —->自动添加模板的监控项
-
-	自动发现策略:
-
-
-		server端 configuration - create discover
-
-		配置自动发现规则 名称 - IP地址范围 - 更新时间
-
-		自动发现并添加主机清单 —->用到模板
-
-
-	zabbix-proxy(分布式)
-
-		和server端不是一个机器
-		下载安装zabbix proxy
-		yum install -y zabbix-proxy zabbix-proxy-mysql zabbix-agent
-		创建zabbix_proxy数据库
-		解压zabbix软件包 在解压完的目录里有个database导入两个sql文件
-		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/schema.sql
-		mysql -uzabbix -p123456 zabbix_proxy < database/mysql/images.sql
-				
-		安装完zabbix_proxy 会在/usr/local/zabbix/etc/下产生一个zabbix_proxy.conf文件
-		配置server端ip hostname 本机主机ip 以及数据库名的账号密码、发送提交数据给服务端的时间等设置
-
-		设置好之后再服务端的web界面添加zabbix_proxy - create proxy - 添加代理服务器ip - 主动模式 - 添加
-		添加好代理服务器之后 选择添加主机 如上面 手动添加过程 注意添加时选择是有代理服务器检测而不是server端监控
-		添加好的主机也要选择监控项添加一个模板 如自动发现的模板
-		客户端的/us/local/zabbix/etc/zabbix_agentd.conf 里面把指向server端的ip改成指向proxy端的ip地址才能获取到数据
-		
-		
-
-
-
-24.gitlab-ci
-	持续集成: 持续集成是一天多次将代码合并到主干 通过自动构建的方式验证每次提交 尽早发现问题
-	持续集成的价值: 保持随时部署 简化发布流程 尽早发现问题
-
-		
-25.CMDB
-    配置管理数据库
-
-
-
-
-26.rsync
-
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 	
 
 
@@ -1533,7 +1320,6 @@ shell
 		例:
 		def testFun():
     		    temp = [lambda x:i*x for i in range(4)]              def testFun():
-<<<<<<< HEAD
 									            temp = []
     		    return temp                                   ————>      for i in range(4)
 								                       temp.append(lamdba x:i*x)
@@ -1541,15 +1327,6 @@ shell
 										直接调用函数:print(testFun()) 返回的是一个lambda函数对象
 										<function testFun.<locals>.<listcomp>.<lambda> at 0x10a011950>
 										将函数赋值 r = testFun() 再重新对变量赋值 才是lambda返回的值 print(r(2))
-=======
-									     temp = []
-    		    return temp                                   ————>      for i in range(4)
-								                 temp.append(lamdba x:i*x)
-	   	for i in testFun():                            		     return temp
-									直接调用函数:print(testFun()) 返回的是一个lambda函数对象
-									<function testFun.<locals>.<listcomp>.<lambda> at 0x10a011950>
-									将函数赋值 r = testFun() 再重新对变量赋值 才是lambda返回的值 print(r(2))
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 		    print(i(2))    
 		
 		输出结果:
@@ -1764,27 +1541,6 @@ shell
 			按流量或带宽
 			按日峰值月平均
 			按95峰值带宽计费
-<<<<<<< HEAD
-=======
-
-	    6.常见故障
-			调度错误
-			请求劫持
-			节点故障
-			回源失败(源站故障)
-
-
-
-
-
-
-
-高可用性
-
-jumpserver
-
-	
->>>>>>> 5bae8f77ad9c7ae2065685661309ce87c4894bc6
 
 	    6.常见故障
 			调度错误
