@@ -991,6 +991,9 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	
 	找到log日志文件删除30天以前的 ：find . -type f -name “*.log” -mtime +30 -exec rm -rf {} \;
 
+	删除单个大文件：1)> big.log 2)echo -n > big.log（-n指不换行 相当于null）3)true > big.log 4) truncate -s 0 big.log（-s指定大小为0）
+	删除某个文件夹下面的大量文件: 1)rsync —delete-before -a -H -v /tmp/emptydir/ bigdir/（创建一个空文件夹emptdir后面接要删除的文件夹） 2)find /path/directory -type -f -ecec rm {} \;
+
 	grep “([0-9]{1,3}\.){3}[0-9]{1,3}$” file 匹配ip地址
 
 	awk -F ‘:’ ’{print $1，$NF} ‘ file | head -5 打印文件的第一列前五个	
