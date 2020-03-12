@@ -1,11 +1,10 @@
-###记一次Flask接口
-###'''
-###同步OA账号 并记录
-	
-###'''
-####此接口的作用是新入职人员访问这个接口会把人员的邮箱名存在文本中
+### 记一次Flask接口
+### '''
+### 同步OA账号 并记录	
+### '''
+#### 此接口的作用是新入职人员访问这个接口会把人员的邮箱名存在文本中
 
-	@app.route('/###getstatus',methods=['post','get'])
+	@app.route('/getstatus',methods=['post','get'])
 	def get_oastatus():
 	    mail = request.args.get('mail')
 	    if '@yixia.com' in mail:
@@ -23,25 +22,25 @@
 	    app.debug = 1
 	    app.run("0.0.0.0", 8000)
 
-###UWSGI部署flask
+### UWSGI部署flask
 	  1 [uwsgi]
 	  2 socket = 127.0.0.1:9001
-	  3 wsgi-file = /var/www/vpnApp/app3.py
+	  3 wsgi-file = /path/app3.py
 	  4 callable = app
 	  5 processes = 2
 	  6 threads = 2
 	  7 master = true
-	  8 logto = /var/www/vpnApp/uwsgioa.log
-	  9 daemonize = /var/www/vpnApp/uwsgioa.log
+	  8 logto = /path/uwsgioa.log
+	  9 daemonize = /path/uwsgioa.log
 	  
-###nginx中关联uwsgi模块
+### nginx中关联uwsgi模块
 	 server {
          listen      8080;
          location / {
              uwsgi_pass 127.0.0.1:9001;
              include uwsgi_params;
          }
-###脚本读文件拿到邮箱名并进行授权
+### 脚本读文件拿到邮箱名并进行授权
 	# /usr/local/bin/python3
 	 # -*- coding:utf-8 -*-
 	 import requests
@@ -98,7 +97,7 @@
 	  if __name__=='__main__':
 	       #login()
 	    try:
-	        with open('/var/www/vpnApp/mail_list.txt','r')as f:
+	        with open('/path/mail_list.txt','r')as f:
 	            lines = f.readlines()
 	            if len(lines):
 	                login()
@@ -108,7 +107,7 @@
 	                    oid = get_oaid(name.strip())
 	                    print('ERP账号已开通 - %s - %s'%(name,time.strftime('%Y-%m-%d %H:%M:%S')))
 	                    config_save(oid,name)
-	                with open('/var/www/vpnApp/mail_list.txt','w')as f:
+	                with open('/path/mail_list.txt','w')as f:
 	                    f.truncate()
 	                print('文件已清空\n')
 	            else:
