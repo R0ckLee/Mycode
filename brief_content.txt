@@ -990,6 +990,9 @@ mysql> GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO repl@'192.168.0.%' 
 	find . -type f -exec chmod -R 644 {} \;  当前目录下 所有文件授权644
 	
 	找到log日志文件删除30天以前的 ：find . -type f -name “*.log” -mtime +30 -exec rm -rf {} \;
+	
+	模拟磁盘空间不足迅速写入指定大小的文件
+	dd if=/dev/zero/ of=/newdir/newfilename.txt bs=10M count=100（if表示为从/dev/zero/黑洞中拿出文件 of是存储的path和文件名 bs为文件块的大小 count为数量）
 
 	删除单个大文件：1)> big.log 2)echo -n > big.log（-n指不换行 相当于null）3)true > big.log 4) truncate -s 0 big.log（-s指定大小为0）
 	删除某个文件夹下面的大量文件: 1)rsync —delete-before -a -H -v /tmp/emptydir/ bigdir/（创建一个空文件夹emptdir后面接要删除的文件夹） 2)find /path/directory -type -f -ecec rm {} \;
