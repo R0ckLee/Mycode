@@ -196,14 +196,56 @@
 	
 	
 ## 备份项目案例
+	项目需求：
+	1）所有服务器的备份目录为/backup
+	2) 备份各系统的配置文件、网站目录、日志文件等
+	3）服务器上要打包保留7天的备份数据
+	4）备份服务器上要保留没周一的数据备份，其他的只保留6个月的
+	5）备份服务器上要按照备份服务器的内网ip为目录保留备份，备份文件名按照时间保存
+	6）需要确保备份服务器上的数据完整性，在备份服务器上进行数据检查，把备份的成功及失败结果发送给管理员的邮箱
 	
-### PS：tar 打包文件的时候 “-h” 参数 是可以备份软链接的真实数据
+`PS：tar 打包文件的时候 “-h” 参数 是可以备份软链接的真实数据`
+`find 命令 ！-name 可以取反`
+`服务端和客户端备份目录的路径应该一直，否则后面md5sum验证数据一致性的时候会出问题`
 	
+### 客户端备份脚本
+	#!/bin/bash
+	Backup_dir = "/backup"
+	# 获取内网ip地址/etc/hosts文件内需要有对应的主机名和ip的映射
+	HOST = $(hostname -i) 
+	# 创建备份目录以主机ip命名
+	mkdir -p $Backup_dir/$HOST
+	# 打包要备份的数据	
+	cd /
+	# 实际是零点进行备份要备份前一天的数据所以要 -1day
+	tar zchf $Backup_dir/$HOST/backup_data_$(date +%F_week%w -d -1day) ./path/file ./... ./...可以接多个
+	# 删除7天前的数据
+	find $Backup_dir/ -type f -mtime +7 |xargs rm 2>/dev/null
+	# 创建指纹文件 用来保存每一天最新备份文件的md5值
+	find $Backup_dir/ -type f -mtime -1 ! -name "finger.txt" | xargs md5sum > $Backup_dir/$HOST/finger.txt
+	# 推送备份数据到备份服务器
+	rsync -avz $Backup_dir/ rsync_backup@host::backup --password-file=/etc/rsync.password
 	
+### 服务端脚本
+	#!/bin/bash
+	Backup_dir = "/backup"
+	# 删除30天以上的备份
+	find $Backup_dir/ -type f -mtime +180 ! -name "不删除文件的名字" | xargs rm 2>/dev/null
+	# 检查备份数据的完整性
+	find $Backup_dir/ -type f -name "finger.txt" | xargs md5sum -c > /tmp/check.txt
+	# 检查结果发送邮件
+	首先配置发邮件的配置文件
+	vim /etc/mail.rc
+	最后添加
+	set from=liyan@yixia.com smtp=smtp.yixia.com
+	set smtp-auth-user=liyan@yixia.com smtp-auth-password=密码 smtp-auth=login
+	systemctl restart postfix.service
+	mail -s "备份数据 - $(date +%F)" liyan@yixia.com < /tmp/check.txt
 	
-	
-	
-	
+`sh -x 脚本 脚本详细步骤拍错`
+`自动全网备份把服务网段和客户端的脚本放到定时任务里`
+
+
 	
 	
 	
