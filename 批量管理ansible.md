@@ -268,8 +268,8 @@
 	ansible host -m user -a "name=test uid=6666"
 	
 	2.指定用户组
-	ansible host -m user -a "name=test group=test2"(主要组)
-	ansible host -m user -a "name=test2 groups=test2"(附加到另外的组)
+	ansible host -m user -a "name=test group=test2"(可以属于别的组)
+	ansible host -m user -a "name=test2 groups=test2"(可以附加到另外的组)
 
 	3.批量创建虚拟用户
 	ansible host -m user -a "name=rsync create_home=no shell=/sbin/nologin"
@@ -287,21 +287,70 @@
 	 方法二:
 	 pip install passlib
 	 python3 -c "from passlib.hash import sha512_crypt;import getpass;print(sha512_crypt.using(rounds=5000).hash('123456'.encode('utf-8')))"
-	
+
+
+### 剧本编写方法
+#### 剧本的作用: 一键化完成多个任务
+	自动化部署rsync服务:
+#### 剧本的组成部分
+	阿斯达
+
+#### 剧本的编写规范
+	yaml文件 - 三点要求
+	1. 合理的缩进
+		两个空格表示一个缩进
+		ps:在ansible中一定不能用tab进行缩进
+	2. 冒号的用法
+		hosts: 10.10.20.25
+		tasks:
+		yum: name=xxx
+		ps:使用冒号时后面要有空格
+		以冒号结尾，冒号信息出现在注释说明中，后面不需要加上空格
+			
+	3. 短横线应用 - （列表功能）
+	   - 张三
+	     男	
+		    - 打游戏	
+		    - 运动
+    
+       ps: 使用短横线构成列表信息，短横线后面需要有空格
+    
+#### 开始编写剧本
+    统一剧本目录
+    mkdir /etc/ansible/ansible-playbook 
+    vim /etc/ansible/ansible-playbook/rsync_server.yaml
+    说明:扩展名要是yaml或yml结尾
+    1. 方便识别文件是剧本文件
+    2. 文件编写时会有颜色提示
+    基本使用:
+    - hosts: 10.10.20.25
+	  tasks:
+	    - name: 描述信息-install rsync
+	      yum: name=rsync state=installed
+	    - name: 描述信息-push conf file
+	      copy: src=/tmp/rsyncd.conf dest=/etc/
+
+
+	如何执行剧本:
+	1. 先检查语法格式
+	   ansible-playbook --syntax-check rsync_server.yaml
+	2. 模拟执行一遍
+	   ansible-playbook -C rsync_server.yaml
+	3. 直接执行
+	   ansible-playbook rsync_server.yaml
     
     
-   
+#### 利用剧本完成服务一键化部署
+	1. rsync    服务部署
+	2. nfs      服务部署
+	3. sersync  服务部署
+	4. 全网备份项目
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    rsync服务剧本编写:
+    准备工作: 
+    1) 熟悉软件部署流程
+    2）熟悉ansible软件模块使用
+    3）熟悉ansible剧本编写规范
     
     
     
