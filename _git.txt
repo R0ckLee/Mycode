@@ -64,6 +64,8 @@ git reset head #好像比上面git rm --cached更方便
 
 git commit -m ‘描述信息’ #提交
 
+git commit -am # 如果某个文件已经被仓库管理，如果再更改此文件，直接需要一条命令提交即可（相当于先add再commit）
+
 git remote add origin +git远程仓库地址 #添加源
 
 git push origin master # 推送远程仓库
@@ -72,9 +74,14 @@ git push origin master # 推送远程仓库
 
 git log # 查看提交记录
 
-git log —-oneline
+git log —-oneline —decorate# 查看当前指针指向,简化显示
 
-git reflog 显示指针HEAD@{当前版本需要多少步}
+git log -1 -p #查看最近一条，详细的改动
+
+git reflog 显示指针HEAD@{当前版本需要多少步}显示所有提交的版本包括回滚的
+
+git reset —hard +git log中的唯一哈希值 回滚到指定版本
+
 
 
 基于索引值操作后退和前进版本
@@ -101,19 +108,29 @@ Git 分支:
 git branch -v 查看分支
 git branch 创建分支
 git checkout + 分支名 切换分支
+git checkout -b +分支名 #创建并切换到分支
+git branch -d +分支名 #删除分支（在master上执行）
 
 合并操作:
 分支合并master 
 先切换到接受修改的分支上（被合并，添加新内容）上 git checkout + 被合并
 再执行merge命令 + 分支名字 git merge + 分支名
+在master上执行命令 git merge +分支名
 
 合并时产生冲突:
 先编辑文件删除特殊符号修改
 再修改文件内容
 git add + 文件名
-git commit -m ’‘ 此时commit不能带文件名
+git commit -m ‘合并’ #此时commit不能带文件名
 
 
+
+打标签:
+
+git tag -a v1.0 -m ’描述信息‘
+git show v1.0 #查看v1.0信息
+git reset —-hard v1.0 #直接还原数据到v1.0
+git tag -d v1.0 #删除标签
 
 拉取pull：
 
