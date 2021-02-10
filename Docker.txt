@@ -11,7 +11,7 @@ Docker:
 持续集成 迭代
 
 微服务 一个容器一个服务 相互隔离 
-
+ 
 弹性伸缩 快速扩容 集群管理解决方案 k8s
 
 容器可比喻为镜像上面添加了读写层
@@ -20,15 +20,45 @@ Docker:
 
 
 Docker-file一些命令 docker-file是干什么的
+docker-file是用来自动构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
+自动构建镜像的步骤:
+1.先手动构建一遍，确保有些东西想不到
+2.编写dockerfile
+3.构建镜像
+4.测试 
+
+dockerfile的分层概念
+第一次构建镜像是会产生缓存，如果后面更改了dockerfile，尽量加在文件的后面，让之前的数据都走缓存，这样比较快
+
+
+写docker-file —> bulid —> run 三步骤
+编写dockerfile
+然后docker build -t + 新镜像名字 + ‘.’  # -t指定镜像名和版本,‘.’是Dokerfile 文件所在目录 也可以是绝对路径
+
+格式：
+	保留字指令：
+	FROM 基础镜像的来源 原镜像 Base镜像（scrath 一切镜像的祖先类）
+	MAINTAINER 作者和邮箱的一些信息
+	RUN 容器构建时需要运行的命令   #（每次run相当于临时启动一个容器去运行命令，临时提交一个镜像，把之前的临时容器再删除）
+	EXPOSE 当前容器对外暴露的端口号
+	WORKDIR 登陆容器的时候落脚点目录
+	ENV 用来在构建容器过程中设置的环境变量
+	ADD 将宿主机的文件拷贝文件并解压到镜像的指定目录
+	COPY 类似ADD 拷贝文件到镜像中  COPY src dest 或 COPY [‘src’,’dest’]
+	VOLUME 容器卷 用于保存数据和持久化工作
+	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行) 指定一个容器启动时要运行的命令 Dockerfile 中可以指定多个CMD指令 但是只有最后一个生效 CMD会被docke run之后的参数替换
+	ENTRYPOINT 指定一个容器启动时要运行的命令 ENTRYPOINT 不会被docker run之后参数替换而是追加
+	ONBUILD 当构建一个继承的Dockerfile时运行命令，父镜像在被子继承后父镜像的onbuild被触发
+	LABEL 功能是为镜像指定标签  说明:LABEL会继承基础镜像种的LABEL，如遇到key相同，则值覆盖
+
+
+
+
+
 	
 	安装时先配置阿里的镜像源
 		
-	docker-file是用来构建docker镜像的构建文件 是有一系列命令和参数构成的脚本
-	写docker-file —> bulid —> run 三步骤
-	编写dockerfile
-	然后docker build -f + 文件目录 -t + 新镜像名字 + ‘.’  ‘.’是Dokerfile 文件所在目录 也可以是绝对路径
-	再docker run -itd + 镜像id或者名字:加版本 启动一个容器
-	
+		
 	docker images查看生成的镜像
 		
 	docker ps 当前正在运行的容器 docker ps -q 查询当前运行容器的id docker ps -qa 查看所有的容器的id
@@ -44,40 +74,29 @@ Docker-file一些命令 docker-file是干什么的
 	
 	docker container ls # 查看正在运行的容器 / docker ps
 	docker container ls -a # 查看运行中和杀死的容器 / docker ps -a
+	docker container ps -l # 查看当前运行最新的一个容器 
+	docker container ps -l —-no-trunc # 显示完整容器参数内容
 	docker container stop +容器id / docker kill 容器id
 	docker container start +容器id
 	
-	docker history + 镜像id 查看镜像的生成过程
+	docker history + 镜像id # 查看镜像的生成过程
+	docker inspect + 镜像id或者容器id # 查看镜像或者容器属性的详细信息 
 	
 	docker -v 添加容器卷
 	
-	docker exec -it + 镜像id + 执行的命令  # 在容器外面对某个容器执行命令并返回，常用这个
-	进入一个容器 docker exec+ 镜像id 或 docker attach+镜像id（attach使用的是同一个终端，容易冲突）
+	docker exec -it + 镜像id + /bin/bash  # 在容器外面对某个容器执行命令并返回，常用这个
+	进入一个容器 docker exec+ 镜像id 或 docker attach+镜像id（attach临时进入容器使用的是同一个终端，容易冲突）
 	ctrl+p+q 临时退出容器并报出运行 ctrl+c退出并关闭容器
 	
 	docker restart + 镜像id 重启容器
 
-	docker commit 将容器提交一个新的镜像
+	docker container commit +容器id +生成镜像的名 # 将容器提交一个新的镜像
 	将提交的镜像推送至阿里云 先注册开发者账号 并新建镜像仓库
 	docker login —-username= 仓库地址
 	docker tag + 镜像id + 仓库地址:[镜像版本号]
 	docker push + 仓库地址/:[镜像版本号]
 
-	格式：
-	保留字指令：
-	FROM 基础镜像的来源 原镜像 Base镜像（scrath 一切镜像的祖先类）
-	MAINTAINER 作者和邮箱的一些信息
-	RUN 容器构建时需要运行的命令
-	EXPOSE 当前容器对外暴露的端口号
-	WORKDIR 登陆容器的时候落脚点目录
-	ENV 用来在构建容器过程中设置的环境变量
-	ADD 将宿主机的文件拷贝文件并解压到镜像的指定目录
-	COPY 类似ADD 拷贝文件到镜像中  COPY src dest 或 COPY [‘src’,’dest’]
-	VOLUME 容器卷 用于保存数据和持久化工作
-	CMD [‘/bin/bash’] (运行镜像的时候 以/bin/bash的环境运行) 指定一个容器启动时要运行的命令 Dockerfile 中可以指定多个CMD指令 但是只有最后一个生效 CMD会被docke run之后的参数替换
-	ENTRYPOINT 指定一个容器启动时要运行的命令 ENTRYPOINT 不会被docker run之后参数替换而是追加
-	ONBUILD 当构建一个继承的Dockerfile时运行命令，父镜像在被子继承后父镜像的onbuild被触发
-	LABEL 功能是为镜像指定标签  说明:LABEL会继承基础镜像种的LABEL，如遇到key相同，则值覆盖
+	
 
 
 	
@@ -102,6 +121,104 @@ Docker-file一些命令 docker-file是干什么的
 		     （3） 执行类似docker commit 的命令提交一个新的镜像层     ——>  最终形成一个镜像
 		     （4） docker 在基于刚才提交的镜像运行一个新容器
 		     （5） 执行dockerfile中的每一条指令到所有都完成
+
+
+
+容器间的互联（—-link是单方向的！）:
+实际上行是添加了一条host解析
+docker run -d -p 80:80 nginx
+docker run -it —-link 要访问的容器名字:别名 镜像 /bin/bash
+
+
+重启docker服务可以拉取容器:
+docker run —-restart=always
+
+
+容器私有仓库:
+## 普通的registry docker官方自己的私有仓库，也是容器启动
+docker run -d -p 5000:5000 —restart=always -v /opt/myresistry:/var/lib/resistry resistry
+
+上传镜像到私有仓库:
+1.给镜像打标签
+docker tag 镜像名 私有仓库地址/镜像名
+2.上传镜像
+docker push 私有仓库地址/镜像名
+
+从私有仓库下载镜像:
+docker run -d 私有仓库地址/镜像名
+
+
+
+
+Docker网络类型:
+None: 不为容器配置任何网络功能， —-net=none
+Container: 与另一个运行中的容器共享Newwork Namespace,—-net=container:containerID(k8s)
+Host: 与宿主机共享Network Namesapce,—net=host
+Bridge: Docker设计的NAT网络模型（默认的网络类型）
+
+
+Docker跨主机容器之间的通信macvlan:
+默认是一个物理网卡，只要貣物理地址，虚拟多个mac地址
+##创建macvlan网络
+docker network create —-driver macvlan —-subnet 10.0.0.0/24 —-gateway 10.0.0.254 -o parent=eth0 macvlan_1
+##创建使用macvlan的网络容器
+docker run -it —-network macvlan_1 —-ip=10.0.0.100 镜像id
+
+
+Docker跨主机容器之间的通信overlay:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
