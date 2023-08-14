@@ -31,14 +31,14 @@
 
 * 可代替远程scp命令
 
-	scp -rp /etc/hosts root@10.10.20.25:/backup/
+	scp -rp /etc/hosts root@ip:/backup/
 	
-	rsync -rp /etc/hosts root@10.102.0.25:/backup/
+	rsync -rp /etc/hosts root@ip:/backup/
 	
 	远程目录备份：
-	rsync -rp /backup root@10.10.20.25:/backup（不带 / 表示备份目录以及下面的文件）
+	rsync -rp /backup root@ip/backup（不带 / 表示备份目录以及下面的文件）
 	
-	rsync -rp /backup/ root@10.10.20.25:/backup（带 / 表示只备份目录下面的文件）
+	rsync -rp /backup/ root@ip:/backup（带 / 表示只备份目录下面的文件）
 
 	
 	
@@ -46,7 +46,7 @@
 
 	rm -rf /tmp/*
 	
-	rsync -rp --delete /null/ root@10.10.20.25:/tmp/（null为空目录）
+	rsync -rp --delete /null/ root@ip:/tmp/（null为空目录）
 	
 	
 ## rsync守护进程的方式备份
@@ -74,7 +74,7 @@
 	#存放进程ID的文件位置，判断服务是否开启 方便快速关闭服务
 	pid file = /var/run/rsyncd.pid
 	#允许访问的客户机地址
-	hosts allow = 10.10.20.0/23
+	hosts allow = ip/23
 	#禁止访问的客户机地址
 	#hosts deny = 0.0.0.0/32
 	#最大连接数 同时连接服务端的客户端数量
