@@ -7,7 +7,7 @@
 	@app.route('/getstatus',methods=['post','get'])
 	def get_oastatus():
 	    mail = request.args.get('mail')
-	    if '@yixia.com' in mail:
+	    if '@xxx.com' in mail:
 	        with open('mail_list.txt','a')as f:
 	            f.write(mail+'\n')
 	            with open('mail_list.txt','r')as line:
@@ -49,7 +49,7 @@
 	 import sys
 	 import re
 	 
-	 # oa_admin1 账号
+	 #  账号
 	  session = requests.Session()
 	  header = {'User-Agent': 'Mozilla/5.0 (compatible; WOW64; MSIE 10.0; Windows NT 6.2)',
 	            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
