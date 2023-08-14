@@ -1,8 +1,8 @@
 ### 记一次Flask接口
 ### '''
-### 同步OA账号 并记录	
+### 同步账号 并记录	
 ### '''
-#### 此接口的作用是新入职人员访问这个接口会把人员的邮箱名存在文本中
+#### 此接口的作用是把访问这个接口会把人员的邮箱名存在文本中
 
 	@app.route('/getstatus',methods=['post','get'])
 	def get_oastatus():
@@ -67,27 +67,19 @@
     return response
 
 
-	def get_oaid(oaname):
-	    url='获得oaidurl{}'.format(oaname)
+	def get_id(name):
+	    url='获得oaidurl{}'.format(name)
 	    oaid = session.get(url,headers=header)
 
-    id = re.findall(r'<a6id>(.*?)</a6id>',oaid.text,re.S)
+    id = re.findall(r'<a6id>(.*?)</a6id>',id.text,re.S)
 
     return  id[0]+','
 
 
-	def config_save(oid,oaname):
+	def config_save(oid,name):
 	    url='保存的url'
 	    data = {
-	            'isShowTree': '显示',
-	            'defaultAccount': '开启',
-	            'SavePerson': 0,
-	            'a6ufname': 1,
-	            'a6ufid': 1,
-	            'oaid': oid,
-	            'oaname': oaname,
-	            'isShow': '显示',
-	            'defaultAcc': '开启'
+			"param": "参数"
 	    }
 	    print(data)
 	    save_config = session.post(url,data=data,headers=header)
@@ -104,8 +96,8 @@
 	                for name in lines:
 	                    # oaname = lines[-1].strip()
 	                    name = name.strip()
-	                    oid = get_oaid(name.strip())
-	                    print('ERP账号已开通 - %s - %s'%(name,time.strftime('%Y-%m-%d %H:%M:%S')))
+	                    oid = get_id(name.strip())
+	                    print('账号已开通 - %s - %s'%(name,time.strftime('%Y-%m-%d %H:%M:%S')))
 	                    config_save(oid,name)
 	                with open('/path/mail_list.txt','w')as f:
 	                    f.truncate()
