@@ -237,8 +237,8 @@
 	首先配置发邮件的配置文件
 	vim /etc/mail.rc
 	最后添加
-	set from=liyan@yixia.com smtp=smtp.yixia.com
-	set smtp-auth-user=liyan@yixia.com smtp-auth-password=密码 smtp-auth=login
+	set from=xxx@xxx.com smtp=smtp.xxx.com
+	set smtp-auth-user=xxx@xxx.com smtp-auth-password=密码 smtp-auth=login
 	systemctl restart postfix.service
 	mail -s "备份数据 - $(date +%F)" liyan@yixia.com < /tmp/check.txt
 	
